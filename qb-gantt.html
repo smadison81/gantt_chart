@@ -1,0 +1,2527 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Quickbase Gantt</title>
+<style>
+:root{
+  --bg:#f8fafc; --surface:#fff; --surface-2:#f1f5f9; --surface-3:#e2e8f0;
+  --border:#e2e8f0; --border-strong:#cbd5e1;
+  --text:#0f172a; --text-2:#475569; --text-3:#94a3b8;
+  --accent:#3b82f6; --accent-dark:#2563eb; --accent-soft:#dbeafe;
+  --success:#10b981; --warning:#f59e0b; --danger:#ef4444; --info:#6366f1;
+  --bar:#6366f1; --bar-complete:#10b981; --bar-late:#ef4444;
+  --bar-progress:#f59e0b; --bar-blocked:#dc2626; --bar-baseline:#cbd5e1;
+  --shadow-sm:0 1px 2px rgba(0,0,0,.05);
+  --shadow:0 4px 6px -1px rgba(0,0,0,.07),0 2px 4px -2px rgba(0,0,0,.05);
+  --shadow-lg:0 10px 25px -5px rgba(0,0,0,.1),0 4px 6px -4px rgba(0,0,0,.05);
+  --radius:8px; --radius-sm:6px; --row-h:38px;
+}
+*{box-sizing:border-box}
+html,body{margin:0;padding:0;height:100%;overflow:hidden}
+body{font:14px -apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif;color:var(--text);background:var(--bg)}
+button{font:inherit;cursor:pointer;border:0;background:transparent;color:inherit}
+input,select,textarea{font:inherit;color:inherit}
+a{color:var(--accent);text-decoration:none}
+a:hover{text-decoration:underline}
+
+/* ========== TOOLBAR ========== */
+.toolbar{
+  display:flex;align-items:center;gap:8px;padding:10px 16px;
+  background:var(--surface);border-bottom:1px solid var(--border);
+  position:sticky;top:0;z-index:20;height:56px;flex-shrink:0;
+}
+.toolbar h1{margin:0;font-size:15px;font-weight:600;color:var(--text)}
+.toolbar h1 .sub{color:var(--text-3);font-weight:400;margin-left:8px;font-size:13px}
+.toolbar .spacer{flex:1}
+.btn{
+  display:inline-flex;align-items:center;gap:6px;
+  padding:7px 12px;border-radius:var(--radius-sm);
+  border:1px solid var(--border);background:var(--surface);color:var(--text);
+  font-size:13px;font-weight:500;transition:all .12s;
+}
+.btn:hover{background:var(--surface-2);border-color:var(--border-strong)}
+.btn.primary{background:var(--accent);color:#fff;border-color:var(--accent)}
+.btn.primary:hover{background:var(--accent-dark);border-color:var(--accent-dark)}
+.btn.ghost{border-color:transparent;background:transparent}
+.btn.ghost:hover{background:var(--surface-2)}
+.btn.danger{color:var(--danger)}
+.btn.danger:hover{background:#fef2f2;border-color:#fecaca}
+.btn:disabled{opacity:.5;cursor:not-allowed}
+.btn .ic{width:14px;height:14px;display:inline-block}
+.seg{display:inline-flex;border:1px solid var(--border);border-radius:var(--radius-sm);overflow:hidden;background:var(--surface)}
+.seg button{padding:6px 10px;font-size:12px;font-weight:500;color:var(--text-2);border-right:1px solid var(--border)}
+.seg button:last-child{border-right:0}
+.seg button.active{background:var(--accent);color:#fff}
+.seg button:hover:not(.active){background:var(--surface-2)}
+
+/* ========== STATUS BAR ========== */
+.statusbar{
+  display:flex;align-items:center;gap:12px;padding:6px 16px;
+  background:var(--surface-2);border-bottom:1px solid var(--border);
+  font-size:12px;color:var(--text-2);height:30px;flex-shrink:0;
+}
+.statusbar .pill{padding:2px 8px;border-radius:999px;background:var(--surface);border:1px solid var(--border)}
+.statusbar .pill.ok{color:var(--success);border-color:#a7f3d0;background:#ecfdf5}
+.statusbar .pill.warn{color:var(--warning);border-color:#fde68a;background:#fffbeb}
+.statusbar .pill.err{color:var(--danger);border-color:#fecaca;background:#fef2f2}
+.statusbar .pill.info{color:var(--accent);border-color:#bfdbfe;background:#eff6ff}
+
+/* ========== MAIN LAYOUT ==========
+   Two-pane architecture matching the QB Gantt plugin and standard Gantt UX:
+   - .main: 3-column grid (left | divider | right), fixed height, overflow:hidden
+   - .left: flex column with fixed list-head + scrollable list-body
+   - .right: flex column with fixed timeline-head + scrollable timeline-scroll
+   - timeline-scroll has BOTH overflow-x:auto AND overflow-y:auto, so its
+     horizontal scrollbar sits at the bottom of the visible viewport, NOT
+     hidden way below the rows.
+   - JS syncs list-body.scrollTop ↔ timeline-scroll.scrollTop so vertical
+     scrolling stays aligned. Rows in both panels stack via natural flow,
+     so they cannot desync horizontally either. */
+.main{
+  display:grid;
+  grid-template-columns:var(--left-w,440px) 6px 1fr;
+  height:calc(100vh - 130px);
+  overflow:hidden;
+  background:var(--surface);
+}
+.divider-cell{
+  cursor:col-resize;background:var(--border);
+  transition:background .15s;
+  z-index:6;position:relative;
+}
+.divider-cell:hover,.divider-cell.dragging{background:var(--accent)}
+.divider-cell::after{
+  content:"";position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);
+  width:2px;height:30px;background:var(--text-3);border-radius:2px;opacity:.4;
+}
+.divider-cell:hover::after{opacity:.8;background:#fff}
+
+/* ========== LEFT (LIST) ========== */
+.left{display:flex;flex-direction:column;overflow:hidden;background:var(--surface);min-width:0}
+.list-head,.list-row{
+  display:grid;
+  grid-template-columns:50px var(--col-name,1fr) var(--col-dates,100px) var(--col-status,90px);
+  gap:8px;align-items:center;padding:0 12px;height:var(--row-h);
+  border-bottom:1px solid var(--border);font-size:13px;
+  min-width:0;background:var(--surface);
+  box-sizing:border-box;flex-shrink:0;
+}
+.list-head{
+  flex-shrink:0;
+  font-weight:600;color:var(--text-2);background:var(--surface-2);
+  z-index:5;font-size:11px;
+  text-transform:uppercase;letter-spacing:.04em;
+}
+.list-head > div{position:relative;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.col-resize{
+  position:absolute;top:0;right:-4px;width:8px;height:100%;
+  cursor:col-resize;z-index:6;
+}
+.col-resize:hover{background:linear-gradient(to right,transparent 3px,var(--accent) 3px,var(--accent) 5px,transparent 5px)}
+.list-body{
+  flex:1;
+  overflow-y:auto;overflow-x:hidden;
+  border-right:1px solid var(--border);
+}
+/* Reserve scrollbar-height padding at end of list-body to match the height
+   of the timeline-scroll's horizontal scrollbar. Keeps last row aligned. */
+.list-body::after{content:"";display:block;height:14px;flex-shrink:0}
+.list-row{cursor:pointer;transition:background .1s;min-width:0}
+.list-row:hover{background:var(--surface-2)}
+.list-row.selected{background:var(--accent-soft);box-shadow:inset 3px 0 0 var(--accent)}
+.list-row > div{min-width:0}
+.list-row .rid{color:var(--text-3);font-size:12px;font-variant-numeric:tabular-nums}
+.list-row .nm{overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-weight:500}
+.list-row .dt{color:var(--text-3);font-size:11px;font-variant-numeric:tabular-nums;line-height:1.3;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.list-row .st{font-size:11px;color:var(--text-2);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.list-row.group-header{background:var(--surface-2);font-weight:600;font-size:11px;text-transform:uppercase;letter-spacing:.04em;color:var(--text-2);grid-template-columns:1fr;cursor:pointer}
+.list-row.group-header .gh{display:flex;align-items:center;gap:6px}
+.list-row.group-header .chev{transition:transform .15s}
+.list-row.group-header.collapsed .chev{transform:rotate(-90deg)}
+
+/* ========== RIGHT (TIMELINE) ========== */
+.right{display:flex;flex-direction:column;overflow:hidden;background:var(--surface);min-width:0}
+.timeline-head{
+  flex-shrink:0;
+  height:var(--row-h);background:var(--surface-2);
+  border-bottom:1px solid var(--border);
+  z-index:4;
+  overflow:hidden;
+  position:relative;
+}
+.timeline-head-inner{position:relative;height:100%;will-change:transform}
+.timeline-scroll{
+  flex:1;
+  overflow:auto;
+  position:relative;background:var(--surface);
+}
+.timeline-inner{position:relative}
+
+.tick-major{position:absolute;top:0;height:var(--row-h);
+  border-left:1px solid var(--border-strong);font-size:11px;font-weight:600;
+  padding:6px 8px;color:var(--text-2);white-space:nowrap;background:var(--surface-2);
+}
+.tick-minor{position:absolute;top:18px;height:18px;
+  border-left:1px solid var(--border);font-size:10px;
+  padding:2px 4px;color:var(--text-3);white-space:nowrap;
+}
+.row-grid{position:absolute;top:0;bottom:0;width:1px;background:var(--border)}
+.row-grid.weekend{background:var(--surface-2);width:auto;left:0;border:0;opacity:.5}
+.today-line{
+  position:absolute;top:0;bottom:0;width:2px;background:var(--danger);
+  z-index:3;pointer-events:none;box-shadow:0 0 4px rgba(239,68,68,.4);
+}
+.today-line::before{
+  content:"TODAY";position:absolute;top:4px;left:4px;font-size:10px;
+  font-weight:700;color:var(--danger);background:#fff;padding:1px 4px;
+  border-radius:3px;letter-spacing:.05em;
+}
+
+.tl-row{position:relative;height:var(--row-h);border-bottom:1px solid var(--border)}
+.tl-row.group-header{background:var(--surface-2)}
+.tl-row.selected{background:var(--accent-soft);box-shadow:inset 3px 0 0 var(--accent)}
+.tl-row:hover{background:rgba(59,130,246,.06)}
+.tl-row:hover .bar:not(.dragging){filter:brightness(1.08)}
+
+.bar{
+  position:absolute;height:22px;top:8px;border-radius:5px;
+  background:var(--bar);color:#fff;font-size:11px;font-weight:500;
+  line-height:22px;padding:0 8px;overflow:hidden;white-space:nowrap;
+  text-overflow:ellipsis;cursor:grab;user-select:none;
+  box-shadow:var(--shadow-sm);transition:filter .1s,box-shadow .1s;
+  display:flex;align-items:center;
+}
+.bar:hover{box-shadow:var(--shadow)}
+.bar.dragging{cursor:grabbing;opacity:.85;z-index:5;box-shadow:var(--shadow-lg)}
+.bar.not-started{background:#94a3b8}
+.bar.complete{background:var(--bar-complete)}
+.bar.in-progress{background:var(--bar-progress)}
+.bar.late{background:var(--bar-late)}
+.bar.blocked{background:var(--bar-blocked)}
+.bar.critical{box-shadow:0 0 0 2px var(--danger),var(--shadow-sm)}
+.bar.milestone{
+  width:24px !important;height:24px;top:7px;
+  transform:rotate(45deg);border-radius:3px;padding:0;justify-content:center;
+}
+.bar.milestone .lbl{display:none}
+.bar .lbl{flex:1;overflow:hidden;text-overflow:ellipsis}
+.bar .pct-fill{
+  position:absolute;top:0;left:0;bottom:0;
+  background:rgba(0,0,0,.22);border-radius:5px 0 0 5px;pointer-events:none;
+}
+.bar .handle{
+  position:absolute;top:0;bottom:0;width:6px;cursor:ew-resize;
+  background:rgba(255,255,255,0);transition:background .1s;
+}
+.bar:hover .handle{background:rgba(255,255,255,.3)}
+.bar .handle.left{left:0;border-radius:5px 0 0 5px}
+.bar .handle.right{right:0;border-radius:0 5px 5px 0}
+
+.baseline-bar{
+  position:absolute;height:6px;top:30px;border-radius:3px;
+  background:var(--bar-baseline);opacity:.7;pointer-events:none;
+}
+
+.dep-svg{position:absolute;top:0;left:0;pointer-events:none;z-index:2}
+.dep-line{stroke:var(--text-3);stroke-width:1.5;fill:none}
+.dep-line.violation{stroke:var(--danger);stroke-width:2;stroke-dasharray:4,3}
+
+/* ========== DRAG TOOLTIP ========== */
+.drag-tooltip{
+  position:fixed;z-index:1000;pointer-events:none;
+  background:#0f172a;color:#fff;padding:8px 12px;border-radius:6px;
+  font-size:12px;line-height:1.4;
+  box-shadow:0 10px 25px rgba(0,0,0,.35);
+  white-space:nowrap;
+}
+.drag-tooltip .name{
+  font-weight:700;font-size:11px;text-transform:uppercase;
+  letter-spacing:.04em;color:#94a3b8;margin-bottom:3px;
+  max-width:280px;overflow:hidden;text-overflow:ellipsis;
+}
+.drag-tooltip .dates{font-variant-numeric:tabular-nums;font-size:13px}
+.drag-tooltip .arrow{color:#64748b;margin:0 6px}
+.drag-tooltip .meta{font-size:11px;color:#94a3b8;margin-top:4px}
+
+/* ========== LEGEND ========== */
+.legend{
+  display:flex;gap:14px;align-items:center;font-size:11px;color:var(--text-2);
+  flex-wrap:wrap;margin-left:auto;
+}
+.legend .item{display:inline-flex;align-items:center;gap:5px;white-space:nowrap}
+.legend .swatch{width:14px;height:10px;border-radius:2px;display:inline-block;flex-shrink:0}
+.legend .swatch.milestone{
+  width:10px;height:10px;transform:rotate(45deg);border-radius:1px;
+}
+
+/* ========== EMPTY/ERROR STATES ========== */
+.empty,.err{
+  padding:32px;text-align:center;color:var(--text-2);
+  display:flex;flex-direction:column;align-items:center;gap:12px;
+}
+.empty .ico,.err .ico{font-size:32px;opacity:.5}
+.err{color:var(--danger)}
+.err pre{
+  background:#fef2f2;border:1px solid #fecaca;padding:12px;
+  border-radius:var(--radius-sm);font-size:12px;text-align:left;
+  white-space:pre-wrap;max-width:600px;margin:0;
+}
+
+/* ========== SIDE PANEL (QUICK EDIT) ========== */
+.side-panel{
+  position:fixed;top:0;right:0;bottom:0;width:380px;
+  background:var(--surface);border-left:1px solid var(--border);
+  box-shadow:var(--shadow-lg);z-index:30;
+  transform:translateX(100%);transition:transform .2s;
+  display:flex;flex-direction:column;
+}
+.side-panel.open{transform:translateX(0)}
+.side-panel .ph{
+  padding:16px;border-bottom:1px solid var(--border);
+  display:flex;align-items:center;justify-content:space-between;
+}
+.side-panel .ph h3{margin:0;font-size:15px}
+.side-panel .pb{flex:1;overflow-y:auto;padding:16px}
+.side-panel .pf{padding:12px 16px;border-top:1px solid var(--border);display:flex;gap:8px;justify-content:flex-end}
+.fld{margin-bottom:14px}
+.fld label{display:block;font-size:12px;font-weight:600;color:var(--text-2);margin-bottom:4px}
+.fld input,.fld select,.fld textarea{
+  width:100%;padding:8px 10px;border:1px solid var(--border);
+  border-radius:var(--radius-sm);background:var(--surface);
+}
+.fld input:focus,.fld select:focus,.fld textarea:focus{
+  outline:0;border-color:var(--accent);box-shadow:0 0 0 3px var(--accent-soft);
+}
+.fld .help{font-size:11px;color:var(--text-3);margin-top:4px}
+.row2{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+
+/* ========== SETUP WIZARD ========== */
+.wizard{
+  position:fixed;inset:0;background:linear-gradient(135deg,#f8fafc 0%,#eff6ff 100%);
+  overflow:auto;z-index:50;
+}
+.wizard .container{max-width:780px;margin:40px auto;padding:0 20px}
+.wizard h1{font-size:28px;margin:0 0 8px;color:var(--text)}
+.wizard .lead{color:var(--text-2);font-size:15px;margin:0 0 28px}
+.steps{display:flex;gap:8px;margin-bottom:28px}
+.step{
+  flex:1;padding:10px 14px;border-radius:var(--radius);
+  background:var(--surface);border:1px solid var(--border);
+  font-size:12px;font-weight:600;color:var(--text-3);
+  display:flex;align-items:center;gap:8px;
+}
+.step.active{background:var(--accent);color:#fff;border-color:var(--accent)}
+.step.done{background:var(--success);color:#fff;border-color:var(--success)}
+.step .num{
+  width:20px;height:20px;border-radius:50%;background:rgba(255,255,255,.2);
+  display:inline-flex;align-items:center;justify-content:center;font-size:11px;
+}
+.step:not(.active):not(.done) .num{background:var(--surface-2)}
+.card{
+  background:var(--surface);border:1px solid var(--border);
+  border-radius:var(--radius);padding:24px;box-shadow:var(--shadow-sm);
+  margin-bottom:16px;
+}
+.card h2{font-size:18px;margin:0 0 6px}
+.card .desc{color:var(--text-2);margin:0 0 18px;font-size:14px}
+.card-actions{display:flex;justify-content:space-between;gap:8px;margin-top:8px}
+
+.field-map{
+  display:grid;grid-template-columns:200px 1fr;gap:10px 14px;
+  align-items:center;
+}
+.field-map label{font-size:13px;font-weight:500;color:var(--text)}
+.field-map label .req{color:var(--danger)}
+.field-map label .hint{display:block;font-size:11px;color:var(--text-3);font-weight:400;margin-top:2px}
+.field-map select{padding:7px 10px;border:1px solid var(--border);border-radius:var(--radius-sm);background:var(--surface)}
+.field-map select.match{border-color:var(--success);background:#ecfdf5}
+.field-map select.unmapped{border-color:var(--warning);background:#fffbeb}
+.field-map .group-title{
+  grid-column:1 / -1;font-size:11px;text-transform:uppercase;letter-spacing:.05em;
+  color:var(--text-3);font-weight:700;padding-top:8px;border-top:1px dashed var(--border);
+  margin-top:8px;
+}
+.field-map .group-title:first-child{border-top:0;padding-top:0;margin-top:0}
+
+.code-block{
+  background:#0f172a;color:#e2e8f0;padding:16px;border-radius:var(--radius-sm);
+  font:13px ui-monospace,Menlo,Monaco,Consolas,monospace;
+  white-space:pre-wrap;word-break:break-all;line-height:1.5;
+  position:relative;max-height:280px;overflow:auto;
+}
+.code-block .copy{
+  position:absolute;top:8px;right:8px;padding:4px 8px;font-size:11px;
+  background:rgba(255,255,255,.1);color:#e2e8f0;border-radius:4px;border:1px solid rgba(255,255,255,.2);
+}
+.code-block .copy:hover{background:rgba(255,255,255,.2)}
+.code-block .copy.copied{background:var(--success);border-color:var(--success);color:#fff}
+
+.note{
+  padding:10px 14px;background:#eff6ff;border-left:3px solid var(--accent);
+  border-radius:var(--radius-sm);font-size:13px;color:var(--text);margin:8px 0 16px;
+}
+.note.warn{background:#fffbeb;border-color:var(--warning)}
+.note.err{background:#fef2f2;border-color:var(--danger)}
+
+.summary-grid{display:grid;grid-template-columns:1fr 1fr;gap:8px;font-size:13px}
+.summary-grid .k{color:var(--text-3);font-size:12px}
+.summary-grid .v{font-weight:600;font-family:ui-monospace,Menlo,monospace;font-size:12px}
+
+/* ========== LOADING ========== */
+.loading{
+  display:flex;align-items:center;justify-content:center;
+  height:200px;color:var(--text-3);gap:10px;
+}
+.spinner{
+  width:18px;height:18px;border:2px solid var(--border);
+  border-top-color:var(--accent);border-radius:50%;animation:spin .7s linear infinite;
+}
+@keyframes spin{to{transform:rotate(360deg)}}
+
+/* ========== TOAST ========== */
+.toast{
+  position:fixed;bottom:24px;left:50%;transform:translateX(-50%);
+  background:var(--text);color:#fff;padding:10px 16px;border-radius:var(--radius);
+  font-size:13px;box-shadow:var(--shadow-lg);z-index:100;
+  animation:toast-in .2s ease-out;
+}
+.toast.success{background:var(--success)}
+.toast.error{background:var(--danger)}
+@keyframes toast-in{from{opacity:0;transform:translate(-50%,10px)}to{opacity:1;transform:translate(-50%,0)}}
+
+/* ========== FILTERS ========== */
+.filterbar{
+  display:flex;gap:8px;align-items:center;padding:8px 16px;
+  background:var(--surface);border-bottom:1px solid var(--border);
+  font-size:13px;height:44px;flex-shrink:0;
+}
+.filterbar input,.filterbar select{
+  padding:5px 8px;border:1px solid var(--border);border-radius:var(--radius-sm);
+  background:var(--surface);font-size:12px;
+}
+.filterbar input:focus,.filterbar select:focus{
+  outline:0;border-color:var(--accent);box-shadow:0 0 0 2px var(--accent-soft);
+}
+.filterbar .search{width:200px}
+.chip{
+  display:inline-flex;align-items:center;gap:4px;padding:3px 8px;
+  background:var(--accent-soft);color:var(--accent-dark);border-radius:999px;
+  font-size:11px;font-weight:600;
+}
+.chip .x{cursor:pointer;opacity:.7}
+.chip .x:hover{opacity:1}
+
+/* ========== VALIDATION PANEL ========== */
+.validation-list{padding:0;margin:0;list-style:none}
+.validation-list li{
+  padding:10px 12px;border-bottom:1px solid var(--border);
+  display:flex;gap:10px;align-items:start;cursor:pointer;font-size:13px;
+}
+.validation-list li:hover{background:var(--surface-2)}
+.validation-list li .sev{
+  width:8px;height:8px;border-radius:50%;flex-shrink:0;margin-top:6px;
+}
+.validation-list li.error .sev{background:var(--danger)}
+.validation-list li.warning .sev{background:var(--warning)}
+.validation-list li.info .sev{background:var(--accent)}
+.validation-list li .meta{font-size:11px;color:var(--text-3);margin-top:2px}
+
+/* ========== KEYBOARD HINT ========== */
+.kbd{
+  display:inline-block;padding:1px 6px;background:var(--surface-2);
+  border:1px solid var(--border);border-radius:3px;font-size:11px;
+  font-family:ui-monospace,Menlo,monospace;color:var(--text-2);
+}
+</style>
+</head>
+<body>
+<div id="app"></div>
+
+<script>
+"use strict";
+
+/* ============================================================
+   CONFIG MANAGEMENT
+   ============================================================ */
+const VERSION = "1.0.0";
+const DEFAULTS = {
+  pixelsPerDay: 28,
+  rowHeight: 38,
+  defaultWindowDays: 180,
+  zoom: "week",
+};
+const ZOOM_LEVELS = {
+  day:     { ppd: 40, majorUnit: "week",    minorUnit: "day"     },
+  week:    { ppd: 22, majorUnit: "month",   minorUnit: "week"    },
+  month:   { ppd: 8,  majorUnit: "quarter", minorUnit: "month"   },
+  quarter: { ppd: 3,  majorUnit: "year",    minorUnit: "quarter" },
+  // "all" computes ppd dynamically so the entire chart fits the viewport width
+  all:     { ppd: "auto", majorUnit: "year", minorUnit: "quarter" },
+};
+
+const State = {
+  cfg: {},
+  realm: window.location.hostname,
+  token: "",
+  schema: null,        // schema fields list (setup mode + caching)
+  records: [],         // raw record list
+  tasks: [],           // mapped task objects
+  filtered: [],        // after filters
+  visible: [],         // after grouping/collapse
+  groups: {},          // collapsed groups {key: true}
+  dependencies: [],    // dep records
+  selectedRid: null,
+  zoom: "week",
+  ppd: 22,
+  chartStart: null,
+  chartEnd: null,
+  filters: {
+    search: "",
+    status: "",
+    range: "all",
+    showMilestones: true,
+    showLate: false,
+  },
+  groupBy: "none",
+  showBaselines: true,
+  showDeps: true,
+  cascadeOnMove: false,
+};
+
+function getParam(name) {
+  return new URLSearchParams(window.location.search).get(name) || "";
+}
+function getBoolParam(name, fallback=false) {
+  const v = getParam(name);
+  if (!v) return fallback;
+  return v === "1" || v.toLowerCase() === "true";
+}
+function getNumParam(name, fallback=0) {
+  const v = getParam(name);
+  if (!v) return fallback;
+  const n = Number(v);
+  return isNaN(n) ? fallback : n;
+}
+
+function loadConfig() {
+  const cfg = {
+    // Required
+    taskDbid:        getParam("taskdbid"),
+    fidName:         getNumParam("namefid"),
+    fidStart:        getNumParam("startfid"),
+    fidEnd:          getNumParam("endfid"),
+
+    // Strongly recommended
+    fidProject:      getNumParam("projectfid"),    // FID on task table that holds parent project record id
+    projectRid:      getParam("projectrid"),       // current project record id
+
+    // Optional save target for dragged start (when display start is calculated)
+    fidStartSave:    getNumParam("startsavefid"),  // if 0 we save back to fidStart
+
+    // Optional fields
+    fidStatus:       getNumParam("statusfid"),
+    fidPercent:      getNumParam("percentfid"),
+    fidGroup:        getNumParam("groupfid"),
+    fidAssigned:     getNumParam("assignedfid"),
+    fidMilestone:    getNumParam("milestonefid"),
+    fidPriority:     getNumParam("priorityfid"),
+
+    // Baselines
+    fidBaselineStart: getNumParam("baselinestartfid"),
+    fidBaselineEnd:   getNumParam("baselineendfid"),
+
+    // Dependencies
+    depDbid:         getParam("depdbid"),
+    fidDepPred:      getNumParam("deppredfid"),
+    fidDepSucc:      getNumParam("depsuccfid"),
+    fidDepLag:       getNumParam("deplagfid"),
+    fidDepProject:   getNumParam("depprojectfid"),
+
+    // App token (rare; only if temp token requires it)
+    appToken:        getParam("apptoken"),
+
+    // Behavior
+    allowDrag:       getBoolParam("drag", true),
+    allowResize:     getBoolParam("resize", true),
+    title:           getParam("title") || "Project Gantt",
+    pageId:          getParam("pageid") || getParam("pid") || "",
+    initialZoom:     getParam("zoom") || "week",
+    pixelsPerDay:    getNumParam("ppd", 0),
+  };
+  State.cfg = cfg;
+  State.zoom = ZOOM_LEVELS[cfg.initialZoom] ? cfg.initialZoom : "week";
+  State.ppd = cfg.pixelsPerDay || ZOOM_LEVELS[State.zoom].ppd;
+}
+
+/* ============================================================
+   QUICKBASE API CLIENT
+   ============================================================ */
+async function getTempToken(dbid) {
+  const headers = {
+    "QB-Realm-Hostname": State.realm,
+    "Content-Type": "application/json",
+  };
+  if (State.cfg.appToken) headers["QB-App-Token"] = State.cfg.appToken;
+  const res = await fetch(`https://api.quickbase.com/v1/auth/temporary/${dbid}`, {
+    method: "GET", headers, credentials: "include",
+  });
+  if (!res.ok) {
+    const txt = await res.text();
+    throw new Error(`Auth failed (${res.status}): ${txt.slice(0,200)}`);
+  }
+  const j = await res.json();
+  return j.temporaryAuthorization;
+}
+
+async function qbFetch(path, opts = {}, dbid) {
+  if (!State.token) State.token = await getTempToken(dbid || State.cfg.taskDbid);
+  const headers = {
+    "QB-Realm-Hostname": State.realm,
+    "Authorization": `QB-TEMP-TOKEN ${State.token}`,
+    "Content-Type": "application/json",
+    ...(opts.headers || {}),
+  };
+  const res = await fetch(`https://api.quickbase.com/v1${path}`, { ...opts, headers });
+  const txt = await res.text();
+  let json = {};
+  try { json = txt ? JSON.parse(txt) : {}; } catch { throw new Error("Invalid JSON: " + txt.slice(0,200)); }
+  if (!res.ok) {
+    if (res.status === 401) {
+      // refresh token and retry once
+      State.token = await getTempToken(dbid || State.cfg.taskDbid);
+      headers.Authorization = `QB-TEMP-TOKEN ${State.token}`;
+      const res2 = await fetch(`https://api.quickbase.com/v1${path}`, { ...opts, headers });
+      const txt2 = await res2.text();
+      const j2 = txt2 ? JSON.parse(txt2) : {};
+      if (!res2.ok) throw new Error(j2.description || j2.message || `${res2.status}`);
+      return j2;
+    }
+    throw new Error(json.description || json.message || `${res.status}: ${txt.slice(0,200)}`);
+  }
+  return json;
+}
+
+async function fetchSchema(dbid) {
+  return await qbFetch(`/fields?tableId=${dbid}`, { method: "GET" }, dbid);
+}
+
+async function queryRecords(dbid, body) {
+  return await qbFetch("/records/query", {
+    method: "POST", body: JSON.stringify({ from: dbid, ...body }),
+  }, dbid);
+}
+
+async function updateRecords(dbid, data, fieldsToReturn = []) {
+  return await qbFetch("/records", {
+    method: "POST",
+    body: JSON.stringify({ to: dbid, data, fieldsToReturn }),
+  }, dbid);
+}
+
+/* ============================================================
+   DATE UTILITIES
+   ============================================================ */
+function dateOnly(v) { return v ? String(v).substring(0, 10) : ""; }
+function parseDate(v) {
+  if (!v) return null;
+  const s = dateOnly(v);
+  if (/^\d{4}-\d{2}-\d{2}$/.test(s)) {
+    const [y,m,d] = s.split("-").map(Number);
+    return new Date(y, m-1, d);
+  }
+  if (/^\d{2}\/\d{2}\/\d{4}$/.test(s)) {
+    const [m,d,y] = s.split("/").map(Number);
+    return new Date(y, m-1, d);
+  }
+  const dt = new Date(v);
+  return isNaN(dt.getTime()) ? null : dt;
+}
+function fmtISO(d) {
+  if (!d) return "";
+  return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,"0")}-${String(d.getDate()).padStart(2,"0")}`;
+}
+function fmtUS(d) {
+  if (!d) return "";
+  return `${String(d.getMonth()+1).padStart(2,"0")}/${String(d.getDate()).padStart(2,"0")}/${d.getFullYear()}`;
+}
+function addDays(d, n) {
+  const x = new Date(d);
+  x.setDate(x.getDate() + n);
+  return x;
+}
+function diffDays(a, b) {
+  return Math.round((b.getTime() - a.getTime()) / 86400000);
+}
+function startOfWeek(d) {
+  const x = new Date(d);
+  x.setDate(x.getDate() - x.getDay());
+  x.setHours(0,0,0,0);
+  return x;
+}
+function startOfMonth(d) { return new Date(d.getFullYear(), d.getMonth(), 1); }
+function startOfQuarter(d) { return new Date(d.getFullYear(), Math.floor(d.getMonth()/3)*3, 1); }
+function startOfYear(d) { return new Date(d.getFullYear(), 0, 1); }
+function isWeekend(d) { const w = d.getDay(); return w === 0 || w === 6; }
+
+/* ============================================================
+   FIELD VALUE HELPERS
+   ============================================================ */
+function fv(row, fid) {
+  if (!fid || !row[fid]) return "";
+  const v = row[fid].value;
+  return v === undefined || v === null ? "" : v;
+}
+function firstFv(row, fids) {
+  for (const f of fids) {
+    const v = fv(row, f);
+    if (v !== "" && v !== null && v !== undefined) return v;
+  }
+  return "";
+}
+
+/* ============================================================
+   LOAD TASKS
+   ============================================================ */
+async function loadTasks() {
+  const { cfg } = State;
+  setStatus("Loading tasks...", "info");
+
+  const select = [
+    3, // record id
+    cfg.fidName, cfg.fidStart, cfg.fidEnd,
+    cfg.fidStartSave, cfg.fidStatus, cfg.fidPercent,
+    cfg.fidGroup, cfg.fidAssigned, cfg.fidMilestone, cfg.fidPriority,
+    cfg.fidBaselineStart, cfg.fidBaselineEnd,
+    cfg.fidProject,
+  ].filter(x => x && x > 0);
+
+  const where = [];
+  if (cfg.projectRid && cfg.fidProject) {
+    where.push(`{${cfg.fidProject}.EX.${cfg.projectRid}}`);
+  }
+  // ensure tasks have a start date
+  if (cfg.fidStart) where.push(`{${cfg.fidStart}.XEX.''}`);
+
+  const body = {
+    select,
+    where: where.join("AND") || undefined,
+    sortBy: [
+      { fieldId: cfg.fidStart, order: "ASC" },
+      { fieldId: 3, order: "ASC" },
+    ],
+    options: { top: 1000, skip: 0 },
+  };
+
+  const result = await queryRecords(cfg.taskDbid, body);
+  State.records = result.data || [];
+  State.tasks = State.records.map(mapTask).filter(t => t.start && t.end);
+  State.filtered = State.tasks;
+
+  // Load deps if configured
+  if (cfg.depDbid && cfg.fidDepPred && cfg.fidDepSucc) {
+    try { await loadDeps(); }
+    catch (e) { console.warn("Deps load failed:", e); }
+  }
+
+  computeChartWindow();
+  applyFilters();
+  setStatus(`Loaded ${State.tasks.length} task${State.tasks.length===1?"":"s"}`, "ok");
+}
+
+function mapTask(row) {
+  const { cfg } = State;
+  // Match the reference code's pattern: prefer the display start, fall back
+  // to the editable save target. This lets the bar render correctly even
+  // when FID 9 is empty for newly-saved records before the formula recalcs.
+  const displayStart = fv(row, cfg.fidStart);
+  const editableStart = cfg.fidStartSave ? fv(row, cfg.fidStartSave) : "";
+  const startVal = displayStart || editableStart;
+  const endVal = fv(row, cfg.fidEnd);
+  const start = parseDate(startVal);
+  let end = parseDate(endVal);
+  if (start && !end) end = start;
+
+  const name = String(firstFv(row, [cfg.fidName, 3]) || "Untitled");
+  const status = String(fv(row, cfg.fidStatus) || "");
+  const percent = Number(fv(row, cfg.fidPercent) || 0);
+  const groupVal = String(fv(row, cfg.fidGroup) || "");
+  const assigned = String(fv(row, cfg.fidAssigned) || "");
+  const milestoneFlag = fv(row, cfg.fidMilestone);
+  const priority = String(fv(row, cfg.fidPriority) || "");
+
+  const isMilestone = milestoneFlag === true ||
+    (start && end && fmtISO(start) === fmtISO(end) && !cfg.fidEnd);
+
+  const baselineStart = parseDate(fv(row, cfg.fidBaselineStart));
+  const baselineEnd = parseDate(fv(row, cfg.fidBaselineEnd));
+
+  return {
+    rid: fv(row, 3),
+    name, status, percent: isNaN(percent) ? 0 : Math.max(0, Math.min(100, percent)),
+    group: groupVal, assigned, priority,
+    start, end, isMilestone,
+    baselineStart, baselineEnd,
+    raw: row,
+  };
+}
+
+async function loadDeps() {
+  const { cfg } = State;
+  const select = [3, cfg.fidDepPred, cfg.fidDepSucc, cfg.fidDepLag, cfg.fidDepProject].filter(x => x && x > 0);
+  const where = (cfg.fidDepProject && cfg.projectRid)
+    ? `{${cfg.fidDepProject}.EX.${cfg.projectRid}}` : undefined;
+  const result = await queryRecords(cfg.depDbid, { select, where, options: { top: 1000 } });
+  State.dependencies = (result.data || []).map(r => ({
+    rid: fv(r, 3),
+    pred: Number(fv(r, cfg.fidDepPred) || 0),
+    succ: Number(fv(r, cfg.fidDepSucc) || 0),
+    lag: Number(fv(r, cfg.fidDepLag) || 0),
+  })).filter(d => d.pred && d.succ);
+}
+
+/* ============================================================
+   FILTERS / GROUPING
+   ============================================================ */
+function applyFilters() {
+  const f = State.filters;
+  const today = new Date(); today.setHours(0,0,0,0);
+  let list = State.tasks.slice();
+
+  if (f.search) {
+    const q = f.search.toLowerCase();
+    list = list.filter(t => t.name.toLowerCase().includes(q));
+  }
+  if (f.status) {
+    list = list.filter(t => t.status === f.status);
+  }
+  if (!f.showMilestones) {
+    list = list.filter(t => !t.isMilestone);
+  }
+  if (f.showLate) {
+    list = list.filter(t => t.end < today && t.percent < 100);
+  }
+  if (f.range && f.range !== "all") {
+    const days = { "30": 30, "90": 90, "180": 180, "365": 365 }[f.range];
+    if (days) {
+      const cutoff = addDays(today, days);
+      list = list.filter(t => t.start <= cutoff && t.end >= addDays(today, -30));
+    }
+  }
+  State.filtered = list;
+  computeVisible();
+  render();
+}
+
+function computeVisible() {
+  const list = State.filtered.slice();
+  if (State.groupBy === "none") {
+    State.visible = list.map(t => ({ type: "task", task: t }));
+    return;
+  }
+  // group
+  const buckets = {};
+  list.forEach(t => {
+    const k = State.groupBy === "status" ? (t.status || "(no status)")
+            : State.groupBy === "group" ? (t.group || "(no group)")
+            : State.groupBy === "assigned" ? (t.assigned || "(unassigned)")
+            : "(all)";
+    if (!buckets[k]) buckets[k] = [];
+    buckets[k].push(t);
+  });
+  const out = [];
+  Object.keys(buckets).sort().forEach(k => {
+    out.push({ type: "group", key: k, count: buckets[k].length });
+    if (!State.groups[k]) buckets[k].forEach(t => out.push({ type: "task", task: t, group: k }));
+  });
+  State.visible = out;
+}
+
+/* ============================================================
+   CHART WINDOW
+   ============================================================ */
+function computeChartWindow() {
+  if (!State.tasks.length) {
+    State.chartStart = addDays(new Date(), -7);
+    State.chartEnd = addDays(new Date(), DEFAULTS.defaultWindowDays);
+    return;
+  }
+  let minStart = State.tasks[0].start;
+  let maxEnd = State.tasks[0].end;
+  for (const t of State.tasks) {
+    if (t.start < minStart) minStart = t.start;
+    if (t.end > maxEnd) maxEnd = t.end;
+    if (t.baselineStart && t.baselineStart < minStart) minStart = t.baselineStart;
+    if (t.baselineEnd && t.baselineEnd > maxEnd) maxEnd = t.baselineEnd;
+  }
+  State.chartStart = addDays(minStart, -14);
+  State.chartEnd = addDays(maxEnd, 21);
+}
+
+function totalDays() { return Math.max(1, diffDays(State.chartStart, State.chartEnd) + 1); }
+function chartWidth() { return totalDays() * State.ppd; }
+function dateToX(d) { return diffDays(State.chartStart, d) * State.ppd; }
+function xToDate(x) { return addDays(State.chartStart, Math.round(x / State.ppd)); }
+
+/* ============================================================
+   RENDER
+   ============================================================ */
+function render() {
+  renderToolbar();
+  renderStatusBar();
+  renderFilterBar();
+  renderList();
+  renderTimeline();
+}
+
+function el(tag, attrs = {}, children = []) {
+  const e = document.createElement(tag);
+  for (const k in attrs) {
+    if (k === "class") e.className = attrs[k];
+    else if (k === "html") e.innerHTML = attrs[k];
+    else if (k.startsWith("on") && typeof attrs[k] === "function") e.addEventListener(k.slice(2), attrs[k]);
+    else if (k === "style" && typeof attrs[k] === "object") Object.assign(e.style, attrs[k]);
+    else e.setAttribute(k, attrs[k]);
+  }
+  (Array.isArray(children) ? children : [children]).forEach(c => {
+    if (c == null) return;
+    e.appendChild(typeof c === "string" ? document.createTextNode(c) : c);
+  });
+  return e;
+}
+
+function renderShell() {
+  const app = document.getElementById("app");
+  app.innerHTML = `
+    <div class="toolbar" id="toolbar"></div>
+    <div class="filterbar" id="filterbar"></div>
+    <div class="statusbar" id="statusbar"></div>
+    <div class="main" id="main">
+      <div class="left">
+        <div class="list-head">
+          <div>ID</div>
+          <div>Name<div class="col-resize" data-col="name" title="Drag to resize"></div></div>
+          <div>Dates<div class="col-resize" data-col="dates" title="Drag to resize"></div></div>
+          <div>Status</div>
+        </div>
+        <div class="list-body" id="list-body"></div>
+      </div>
+      <div class="divider-cell" id="panel-divider" title="Drag to resize panel"></div>
+      <div class="right">
+        <div class="timeline-head" id="timeline-head">
+          <div class="timeline-head-inner" id="timeline-head-inner"></div>
+        </div>
+        <div class="timeline-scroll" id="timeline-scroll">
+          <div class="timeline-inner" id="timeline-inner"></div>
+        </div>
+      </div>
+    </div>
+    <div class="side-panel" id="side-panel"></div>
+  `;
+  // Restore saved layout from URL params if provided
+  const root = document.documentElement;
+  const savedLeft = getNumParam("leftw", 0);
+  const savedColName = getNumParam("colname", 0);
+  const savedColDates = getNumParam("coldates", 0);
+  if (savedLeft) root.style.setProperty("--left-w", savedLeft + "px");
+  if (savedColName) root.style.setProperty("--col-name", savedColName + "px");
+  if (savedColDates) root.style.setProperty("--col-dates", savedColDates + "px");
+  attachLayoutResizers();
+}
+
+function attachLayoutResizers() {
+  // Panel divider drag (between left list and timeline)
+  const divider = document.getElementById("panel-divider");
+  if (divider) {
+    divider.addEventListener("pointerdown", e => {
+      e.preventDefault();
+      divider.classList.add("dragging");
+      divider.setPointerCapture(e.pointerId);
+      const startX = e.clientX;
+      const startW = parseFloat(getComputedStyle(document.documentElement).getPropertyValue("--left-w")) || 440;
+
+      const onMove = ev => {
+        const dx = ev.clientX - startX;
+        const w = Math.max(220, Math.min(900, startW + dx));
+        document.documentElement.style.setProperty("--left-w", w + "px");
+      };
+      const onUp = () => {
+        divider.classList.remove("dragging");
+        document.removeEventListener("pointermove", onMove);
+        document.removeEventListener("pointerup", onUp);
+        // Re-render so the timeline width recalculates correctly
+        render();
+      };
+      document.addEventListener("pointermove", onMove);
+      document.addEventListener("pointerup", onUp);
+    });
+  }
+
+  // Column resize handles (Name and Dates)
+  document.querySelectorAll(".col-resize").forEach(handle => {
+    handle.addEventListener("pointerdown", e => {
+      e.preventDefault();
+      e.stopPropagation();
+      const col = handle.dataset.col;
+      const cssVar = col === "name" ? "--col-name" : "--col-dates";
+      const startX = e.clientX;
+      const current = getComputedStyle(document.documentElement).getPropertyValue(cssVar).trim();
+      // For name col, default is 1fr (no fixed width). Compute current pixel width from the rendered cell.
+      const headCells = document.querySelectorAll(".list-head > div");
+      const cellIdx = col === "name" ? 1 : 2;
+      const startW = headCells[cellIdx] ? headCells[cellIdx].getBoundingClientRect().width : 200;
+
+      handle.setPointerCapture(e.pointerId);
+      const onMove = ev => {
+        const dx = ev.clientX - startX;
+        const w = Math.max(60, Math.min(600, startW + dx));
+        document.documentElement.style.setProperty(cssVar, w + "px");
+      };
+      const onUp = () => {
+        document.removeEventListener("pointermove", onMove);
+        document.removeEventListener("pointerup", onUp);
+      };
+      document.addEventListener("pointermove", onMove);
+      document.addEventListener("pointerup", onUp);
+    });
+  });
+}
+
+function renderToolbar() {
+  const tb = document.getElementById("toolbar");
+  if (!tb) return;
+  const z = State.zoom;
+  tb.innerHTML = "";
+  tb.appendChild(el("h1", {}, [
+    State.cfg.title,
+    el("span", { class: "sub" }, [`${State.tasks.length} task${State.tasks.length===1?"":"s"}`]),
+  ]));
+  tb.appendChild(el("div", { class: "spacer" }));
+
+  // Zoom segmented control
+  const seg = el("div", { class: "seg" });
+  ["day","week","month","quarter","all"].forEach(k => {
+    const b = el("button", {
+      class: z === k ? "active" : "",
+      onclick: () => { setZoom(k); }
+    }, [k === "all" ? "All" : k.charAt(0).toUpperCase()+k.slice(1)]);
+    seg.appendChild(b);
+  });
+  tb.appendChild(seg);
+
+  tb.appendChild(el("button", {
+    class: "btn ghost", onclick: scrollToToday
+  }, ["Today"]));
+
+  tb.appendChild(el("button", {
+    class: "btn ghost", onclick: fitToTasks
+  }, ["Fit"]));
+
+  // Group by
+  const groupSel = el("select", {
+    class: "btn",
+    style: { padding: "6px 10px" },
+    onchange: e => { State.groupBy = e.target.value; State.groups = {}; computeVisible(); render(); }
+  });
+  ["none","status","group","assigned"].forEach(k => {
+    const opt = el("option", { value: k }, [k === "none" ? "No group" : "Group: " + k]);
+    if (State.groupBy === k) opt.selected = true;
+    groupSel.appendChild(opt);
+  });
+  tb.appendChild(groupSel);
+
+  tb.appendChild(el("button", {
+    class: "btn", onclick: validateSchedule
+  }, ["Validate"]));
+
+  tb.appendChild(el("button", {
+    class: "btn primary", onclick: () => loadTasks().catch(showError)
+  }, ["Refresh"]));
+}
+
+function renderFilterBar() {
+  const fb = document.getElementById("filterbar");
+  if (!fb) return;
+  fb.innerHTML = "";
+
+  const search = el("input", {
+    type: "text", class: "search", placeholder: "Search tasks...",
+    value: State.filters.search,
+    oninput: e => { State.filters.search = e.target.value; applyFilters(); }
+  });
+  fb.appendChild(search);
+
+  // Status filter (built from data)
+  const statuses = [...new Set(State.tasks.map(t => t.status).filter(Boolean))];
+  if (statuses.length) {
+    const sel = el("select", {
+      onchange: e => { State.filters.status = e.target.value; applyFilters(); }
+    });
+    sel.appendChild(el("option", { value: "" }, ["All statuses"]));
+    statuses.forEach(s => {
+      const o = el("option", { value: s }, [s]);
+      if (State.filters.status === s) o.selected = true;
+      sel.appendChild(o);
+    });
+    fb.appendChild(sel);
+  }
+
+  const range = el("select", {
+    onchange: e => { State.filters.range = e.target.value; applyFilters(); }
+  });
+  [["all","All time"],["30","Next 30 days"],["90","Next 90 days"],["180","Next 6 months"],["365","Next year"]].forEach(([v,l]) => {
+    const o = el("option", { value: v }, [l]);
+    if (State.filters.range === v) o.selected = true;
+    range.appendChild(o);
+  });
+  fb.appendChild(range);
+
+  // Toggles
+  const lateLbl = el("label", { style: { fontSize: "12px", display: "flex", alignItems: "center", gap: "4px", color: "var(--text-2)" }});
+  const lateChk = el("input", { type: "checkbox" });
+  if (State.filters.showLate) lateChk.checked = true;
+  lateChk.addEventListener("change", e => { State.filters.showLate = e.target.checked; applyFilters(); });
+  lateLbl.appendChild(lateChk);
+  lateLbl.appendChild(document.createTextNode(" Late only"));
+  fb.appendChild(lateLbl);
+
+  const msLbl = el("label", { style: { fontSize: "12px", display: "flex", alignItems: "center", gap: "4px", color: "var(--text-2)" }});
+  const msChk = el("input", { type: "checkbox" });
+  if (State.filters.showMilestones) msChk.checked = true;
+  msChk.addEventListener("change", e => { State.filters.showMilestones = e.target.checked; applyFilters(); });
+  msLbl.appendChild(msChk);
+  msLbl.appendChild(document.createTextNode(" Milestones"));
+  fb.appendChild(msLbl);
+
+  if (State.cfg.fidBaselineStart) {
+    const blLbl = el("label", { style: { fontSize: "12px", display: "flex", alignItems: "center", gap: "4px", color: "var(--text-2)" }});
+    const blChk = el("input", { type: "checkbox" });
+    if (State.showBaselines) blChk.checked = true;
+    blChk.addEventListener("change", e => { State.showBaselines = e.target.checked; render(); });
+    blLbl.appendChild(blChk);
+    blLbl.appendChild(document.createTextNode(" Baseline"));
+    fb.appendChild(blLbl);
+  }
+
+  if (State.dependencies.length) {
+    const depLbl = el("label", { style: { fontSize: "12px", display: "flex", alignItems: "center", gap: "4px", color: "var(--text-2)" }});
+    const depChk = el("input", { type: "checkbox" });
+    if (State.showDeps) depChk.checked = true;
+    depChk.addEventListener("change", e => { State.showDeps = e.target.checked; render(); });
+    depLbl.appendChild(depChk);
+    depLbl.appendChild(document.createTextNode(" Dependencies"));
+    fb.appendChild(depLbl);
+
+    const cascLbl = el("label", { style: { fontSize: "12px", display: "flex", alignItems: "center", gap: "4px", color: "var(--text-2)" }});
+    const cascChk = el("input", { type: "checkbox" });
+    if (State.cascadeOnMove) cascChk.checked = true;
+    cascChk.addEventListener("change", e => { State.cascadeOnMove = e.target.checked; });
+    cascLbl.appendChild(cascChk);
+    cascLbl.appendChild(document.createTextNode(" Cascade"));
+    fb.appendChild(cascLbl);
+  }
+
+  // Color legend on the right side of the filterbar
+  const legend = el("div", { class: "legend" });
+  const legendItems = [
+    { label: "Not Started", color: "#94a3b8" },
+    { label: "In Progress", color: "var(--bar-progress)" },
+    { label: "Complete",    color: "var(--bar-complete)" },
+    { label: "Blocked",     color: "var(--bar-blocked)" },
+    { label: "Late",        color: "var(--bar-late)" },
+  ];
+  legendItems.forEach(it => {
+    const item = el("span", { class: "item" });
+    item.appendChild(el("span", { class: "swatch", style: { background: it.color } }));
+    item.appendChild(document.createTextNode(it.label));
+    legend.appendChild(item);
+  });
+  // Milestone diamond
+  const ms = el("span", { class: "item" });
+  ms.appendChild(el("span", { class: "swatch milestone", style: { background: "var(--bar)" } }));
+  ms.appendChild(document.createTextNode("Milestone"));
+  legend.appendChild(ms);
+  fb.appendChild(legend);
+}
+
+function renderStatusBar() {
+  const sb = document.getElementById("statusbar");
+  if (!sb) return;
+  // updated dynamically by setStatus
+}
+
+function setStatus(msg, type = "info") {
+  const sb = document.getElementById("statusbar");
+  if (!sb) return;
+  sb.innerHTML = "";
+  sb.appendChild(el("span", { class: "pill " + type }, [msg]));
+
+  const t = State.filtered.length;
+  const all = State.tasks.length;
+  if (all) {
+    const today = new Date(); today.setHours(0,0,0,0);
+    const late = State.tasks.filter(t => t.end < today && t.percent < 100).length;
+    const done = State.tasks.filter(t => t.percent >= 100).length;
+    sb.appendChild(el("span", {}, [`${t} of ${all} visible`]));
+    if (late) sb.appendChild(el("span", { class: "pill err" }, [`${late} late`]));
+    if (done) sb.appendChild(el("span", { class: "pill ok" }, [`${done} done`]));
+  }
+  sb.appendChild(el("span", { style: { marginLeft: "auto", color: "var(--text-3)", fontSize: "11px" }}, [
+    `Zoom: ${State.zoom} | ${State.ppd}px/day`
+  ]));
+}
+
+function renderList() {
+  const lb = document.getElementById("list-body");
+  if (!lb) return;
+  lb.innerHTML = "";
+  if (!State.visible.length) {
+    lb.appendChild(el("div", { class: "empty" }, [
+      el("div", { class: "ico" }, ["📋"]),
+      el("div", {}, ["No tasks to show."]),
+      el("div", { style: { fontSize: "12px", color: "var(--text-3)" }}, ["Adjust filters or check field mapping."]),
+    ]));
+    return;
+  }
+  State.visible.forEach((item, idx) => {
+    if (item.type === "group") {
+      const collapsed = State.groups[item.key];
+      const row = el("div", {
+        class: "list-row group-header" + (collapsed ? " collapsed" : ""),
+        onclick: () => toggleGroup(item.key)
+      }, [
+        el("div", { class: "gh" }, [
+          el("span", { class: "chev" }, ["▼"]),
+          item.key,
+          el("span", { style: { color: "var(--text-3)", fontWeight: "400", marginLeft: "6px" }}, [`(${item.count})`]),
+        ]),
+      ]);
+      lb.appendChild(row);
+    } else {
+      const t = item.task;
+      const sel = State.selectedRid === t.rid ? " selected" : "";
+      const row = el("div", {
+        class: "list-row" + sel,
+        onclick: () => selectTask(t.rid),
+        ondblclick: () => openQuickEdit(t.rid),
+      }, [
+        el("div", { class: "rid", title: `Record #${t.rid}` }, [String(t.rid)]),
+        el("div", { class: "nm", title: t.name }, [t.name]),
+        el("div", { class: "dt", title: `${fmtUS(t.start)} → ${fmtUS(t.end)}` }, [
+          el("div", {}, [fmtUS(t.start)]),
+          el("div", {}, [fmtUS(t.end)]),
+        ]),
+        el("div", { class: "st", title: t.status || "" }, [t.status || ""]),
+      ]);
+      lb.appendChild(row);
+    }
+  });
+}
+
+function renderTimeline() {
+  const headInner = document.getElementById("timeline-head-inner");
+  const inner = document.getElementById("timeline-inner");
+  const scroll = document.getElementById("timeline-scroll");
+  const listBody = document.getElementById("list-body");
+  if (!headInner || !inner || !scroll) return;
+
+  const w = chartWidth();
+  headInner.innerHTML = "";
+  inner.innerHTML = "";
+  inner.style.width = w + "px";
+  headInner.style.width = w + "px";
+
+  renderTicks(headInner, w);
+  renderTodayLine(inner);
+  renderRows(inner, w);
+  renderDependencies(inner, w);
+
+  // Horizontal: header tracks timeline-scroll via CSS transform.
+  // Vertical: bidirectional sync between list-body and timeline-scroll using
+  // a flag to break re-entry. The flag flips back via requestAnimationFrame
+  // so we don't lose user-driven scroll events.
+  let syncing = false;
+  scroll.onscroll = () => {
+    headInner.style.transform = `translateX(-${scroll.scrollLeft}px)`;
+    State._scrollLeft = scroll.scrollLeft;
+    if (!syncing && listBody) {
+      syncing = true;
+      listBody.scrollTop = scroll.scrollTop;
+      State._scrollTop = scroll.scrollTop;
+      requestAnimationFrame(() => { syncing = false; });
+    }
+  };
+  if (listBody) {
+    listBody.onscroll = () => {
+      if (!syncing) {
+        syncing = true;
+        scroll.scrollTop = listBody.scrollTop;
+        State._scrollTop = listBody.scrollTop;
+        requestAnimationFrame(() => { syncing = false; });
+      }
+    };
+  }
+
+  // Restore scroll positions
+  if (State._scrollLeft != null) {
+    scroll.scrollLeft = State._scrollLeft;
+    headInner.style.transform = `translateX(-${State._scrollLeft}px)`;
+  }
+  if (State._scrollTop != null) {
+    scroll.scrollTop = State._scrollTop;
+    if (listBody) listBody.scrollTop = State._scrollTop;
+  }
+}
+
+function renderTicks(host, w) {
+  const z = ZOOM_LEVELS[State.zoom];
+  const total = totalDays();
+  const start = State.chartStart;
+
+  // Major ticks
+  let cursor = start;
+  while (cursor <= State.chartEnd) {
+    let next, label;
+    if (z.majorUnit === "week") {
+      next = startOfWeek(addDays(cursor, 7));
+      label = `Week of ${cursor.getMonth()+1}/${cursor.getDate()}`;
+    } else if (z.majorUnit === "month") {
+      next = new Date(cursor.getFullYear(), cursor.getMonth()+1, 1);
+      label = cursor.toLocaleString("default", { month: "long", year: "numeric" });
+    } else if (z.majorUnit === "quarter") {
+      next = new Date(cursor.getFullYear(), startOfQuarter(cursor).getMonth()+3, 1);
+      label = `Q${Math.floor(cursor.getMonth()/3)+1} ${cursor.getFullYear()}`;
+    } else {
+      next = new Date(cursor.getFullYear()+1, 0, 1);
+      label = String(cursor.getFullYear());
+    }
+    const x = dateToX(cursor);
+    const xn = dateToX(next);
+    const tick = el("div", {
+      class: "tick-major",
+      style: { left: x + "px", width: (xn - x) + "px" },
+    }, [label]);
+    host.appendChild(tick);
+    cursor = next;
+  }
+
+  // Minor ticks
+  cursor = start;
+  while (cursor <= State.chartEnd) {
+    let next, label;
+    if (z.minorUnit === "day") {
+      next = addDays(cursor, 1);
+      label = String(cursor.getDate());
+    } else if (z.minorUnit === "week") {
+      next = startOfWeek(addDays(cursor, 7));
+      label = `${cursor.getMonth()+1}/${cursor.getDate()}`;
+    } else if (z.minorUnit === "month") {
+      next = new Date(cursor.getFullYear(), cursor.getMonth()+1, 1);
+      label = cursor.toLocaleString("default", { month: "short" });
+    } else {
+      next = new Date(cursor.getFullYear(), startOfQuarter(cursor).getMonth()+3, 1);
+      label = `Q${Math.floor(cursor.getMonth()/3)+1}`;
+    }
+    const x = dateToX(cursor);
+    const xn = dateToX(next);
+    if ((xn - x) >= 18) {
+      host.appendChild(el("div", {
+        class: "tick-minor",
+        style: { left: x + "px", width: (xn - x) + "px" },
+      }, [label]));
+    }
+    cursor = next;
+  }
+}
+
+function renderTodayLine(host) {
+  const today = new Date(); today.setHours(0,0,0,0);
+  if (today < State.chartStart || today > State.chartEnd) return;
+  const x = dateToX(today);
+  host.appendChild(el("div", { class: "today-line", style: { left: x + "px" }}));
+}
+
+function renderRows(host, w) {
+  if (!State.visible.length) {
+    host.appendChild(el("div", { class: "empty" }, ["No tasks visible"]));
+    return;
+  }
+
+  // Weekend shading (only for day zoom)
+  if (State.zoom === "day") {
+    let cursor = startOfWeek(State.chartStart);
+    while (cursor <= State.chartEnd) {
+      const sat = addDays(cursor, 6);
+      const x1 = dateToX(sat);
+      const x2 = x1 + 2 * State.ppd;
+      host.appendChild(el("div", {
+        class: "row-grid weekend",
+        style: { left: x1 + "px", width: (x2 - x1) + "px" },
+      }));
+      cursor = addDays(cursor, 7);
+    }
+  }
+
+  // Compute critical path tasks (driving the latest finish)
+  const criticalRids = computeCriticalPath();
+
+  // Rows stack in natural document flow inside timeline-inner.
+  // Setting `top` on a position:relative element shifts from natural
+  // position, causing 2x cumulative drift — so we don't set it.
+  // The bar inside each row IS position:absolute (only left/width set),
+  // which is correct.
+  State.visible.forEach((item, idx) => {
+    if (item.type === "group") {
+      const row = el("div", {
+        class: "tl-row group-header",
+        style: { width: w + "px" },
+      });
+      host.appendChild(row);
+      return;
+    }
+    const t = item.task;
+    const sel = State.selectedRid === t.rid ? " selected" : "";
+    const row = el("div", {
+      class: "tl-row" + sel,
+      style: { width: w + "px" },
+      "data-rid": t.rid,
+    });
+
+    // Baseline ghost bar
+    if (State.showBaselines && t.baselineStart && t.baselineEnd) {
+      const bx = dateToX(t.baselineStart);
+      const bw = Math.max(2, dateToX(addDays(t.baselineEnd, 1)) - bx);
+      row.appendChild(el("div", {
+        class: "baseline-bar",
+        style: { left: bx + "px", width: bw + "px" },
+      }));
+    }
+
+    // Main bar
+    const today = new Date(); today.setHours(0,0,0,0);
+    const isLate = t.end < today && t.percent < 100;
+    const statusClass = (() => {
+      if (t.percent >= 100) return "complete";
+      if (isLate) return "late";
+      const s = (t.status || "").toLowerCase().trim();
+      // Check "not started" / explicit empty FIRST so the "started" substring
+      // in "Not Started" doesn't accidentally match an "in-progress" branch.
+      if (!s || s === "not started" || s.includes("not start") || s.includes("pending") || s === "planning") return "not-started";
+      if (s.includes("complete") || s.includes("done") || s === "closed") return "complete";
+      if (s.includes("block") || s.includes("hold") || s.includes("cancel")) return "blocked";
+      if (s.includes("progress") || s.includes("active") || s.includes("ongoing")) return "in-progress";
+      return "not-started";
+    })();
+
+    const x = dateToX(t.start);
+    const barWidth = Math.max(t.isMilestone ? 24 : 4,
+      dateToX(addDays(t.end, 1)) - x);
+
+    const critClass = criticalRids.has(t.rid) ? " critical" : "";
+    const bar = el("div", {
+      class: "bar " + statusClass + (t.isMilestone ? " milestone" : "") + critClass,
+      style: { left: x + "px", width: barWidth + "px" },
+      title: `${t.name}\n${fmtUS(t.start)} → ${fmtUS(t.end)}\n${t.status} | ${t.percent}%`,
+      "data-rid": t.rid,
+      onclick: e => { e.stopPropagation(); selectTask(t.rid); },
+      ondblclick: () => openQuickEdit(t.rid),
+    });
+
+    if (t.percent > 0 && t.percent < 100 && !t.isMilestone) {
+      bar.appendChild(el("div", {
+        class: "pct-fill",
+        style: { width: t.percent + "%" },
+      }));
+    }
+
+    if (!t.isMilestone) {
+      bar.appendChild(el("div", { class: "lbl" }, [t.name]));
+    }
+
+    if (State.cfg.allowResize && !t.isMilestone) {
+      bar.appendChild(el("div", { class: "handle left", "data-handle": "left" }));
+      bar.appendChild(el("div", { class: "handle right", "data-handle": "right" }));
+    }
+
+    row.appendChild(bar);
+
+    if (State.cfg.allowDrag) attachBarDrag(bar, t);
+
+    host.appendChild(row);
+  });
+
+  // Padding to allow scrolling
+  host.style.minHeight = (State.visible.length * DEFAULTS.rowHeight + 40) + "px";
+}
+
+/* ============================================================
+   DEPENDENCIES
+   ============================================================ */
+function renderDependencies(host, w) {
+  if (!State.showDeps || !State.dependencies.length) return;
+  // Build rid -> row index map
+  const rowIdx = {};
+  State.visible.forEach((item, idx) => {
+    if (item.type === "task") rowIdx[item.task.rid] = idx;
+  });
+  const rh = DEFAULTS.rowHeight;
+  const totalH = State.visible.length * rh;
+
+  const ns = "http://www.w3.org/2000/svg";
+  const svg = document.createElementNS(ns, "svg");
+  svg.setAttribute("class", "dep-svg");
+  svg.setAttribute("width", w);
+  svg.setAttribute("height", totalH);
+  svg.style.width = w + "px";
+  svg.style.height = totalH + "px";
+
+  // Arrowhead
+  const defs = document.createElementNS(ns, "defs");
+  const marker = document.createElementNS(ns, "marker");
+  marker.setAttribute("id", "arrow");
+  marker.setAttribute("viewBox", "0 0 10 10");
+  marker.setAttribute("refX", "8");
+  marker.setAttribute("refY", "5");
+  marker.setAttribute("markerWidth", "6");
+  marker.setAttribute("markerHeight", "6");
+  marker.setAttribute("orient", "auto-start-reverse");
+  const path = document.createElementNS(ns, "path");
+  path.setAttribute("d", "M 0 0 L 10 5 L 0 10 z");
+  path.setAttribute("fill", "#94a3b8");
+  marker.appendChild(path);
+  defs.appendChild(marker);
+  svg.appendChild(defs);
+
+  State.dependencies.forEach(dep => {
+    const pred = State.tasks.find(t => t.rid === dep.pred);
+    const succ = State.tasks.find(t => t.rid === dep.succ);
+    if (!pred || !succ) return;
+    const pi = rowIdx[pred.rid], si = rowIdx[succ.rid];
+    if (pi == null || si == null) return;
+
+    const y1 = pi * rh + rh/2;
+    const y2 = si * rh + rh/2;
+    const x1 = dateToX(addDays(pred.end, 1));
+    const x2 = dateToX(succ.start);
+
+    // Detect violation
+    const violated = succ.start < addDays(pred.end, 1 + (dep.lag || 0));
+
+    const midX = Math.max(x1 + 8, Math.min(x2 - 8, (x1 + x2)/2));
+    const pe = document.createElementNS(ns, "path");
+    pe.setAttribute("class", "dep-line" + (violated ? " violation" : ""));
+    pe.setAttribute("d", `M ${x1} ${y1} L ${midX} ${y1} L ${midX} ${y2} L ${x2} ${y2}`);
+    pe.setAttribute("marker-end", "url(#arrow)");
+    svg.appendChild(pe);
+  });
+
+  host.appendChild(svg);
+}
+
+function computeCriticalPath() {
+  // Lightweight: tasks whose end date equals the project max end and chain back through deps
+  if (!State.tasks.length) return new Set();
+  let maxEnd = State.tasks[0].end;
+  for (const t of State.tasks) if (t.end > maxEnd) maxEnd = t.end;
+  const critical = new Set();
+  State.tasks.forEach(t => {
+    if (fmtISO(t.end) === fmtISO(maxEnd)) critical.add(t.rid);
+  });
+  // Walk back through deps
+  let changed = true;
+  while (changed) {
+    changed = false;
+    State.dependencies.forEach(d => {
+      if (critical.has(d.succ) && !critical.has(d.pred)) {
+        critical.add(d.pred); changed = true;
+      }
+    });
+  }
+  return critical;
+}
+
+/* ============================================================
+   DRAG / RESIZE
+   ============================================================ */
+function attachBarDrag(bar, task) {
+  let mode = null;        // "move" | "resize-start" | "resize-end"
+  let startX = 0, origLeft = 0, origWidth = 0;
+  let dayShift = 0;
+  let tooltip = null;     // floating drag tooltip element
+
+  // Compute new dates from the current bar geometry. Returns {start, end}.
+  // Reads pixel position back into a date so the tooltip always shows what
+  // would be saved, no off-by-one between move/resize math.
+  function currentDates() {
+    const left = parseFloat(bar.style.left) || 0;
+    const width = parseFloat(bar.style.width) || State.ppd;
+    const startDays = Math.round(left / State.ppd);
+    const endDays = Math.round((left + width) / State.ppd) - 1;
+    const newStart = addDays(State.chartStart, startDays);
+    const newEnd = addDays(State.chartStart, Math.max(startDays, endDays));
+    return { newStart, newEnd };
+  }
+
+  function showTooltip(e) {
+    if (!tooltip) {
+      tooltip = document.createElement("div");
+      tooltip.className = "drag-tooltip";
+      document.body.appendChild(tooltip);
+    }
+    const { newStart, newEnd } = currentDates();
+    const action = mode === "resize-start" ? "Start"
+                 : mode === "resize-end"   ? "End"
+                 : "Move";
+    const sign = dayShift > 0 ? "+" : "";
+    tooltip.innerHTML = `
+      <div class="name">${escapeHtml(task.name)}</div>
+      <div class="dates">${fmtUS(newStart)}<span class="arrow">→</span>${fmtUS(newEnd)}</div>
+      <div class="meta">${action} • ${sign}${dayShift} day${Math.abs(dayShift)===1?"":"s"}</div>
+    `;
+    tooltip.style.left = (e.clientX + 16) + "px";
+    tooltip.style.top  = (e.clientY + 16) + "px";
+  }
+  function hideTooltip() {
+    if (tooltip) { tooltip.remove(); tooltip = null; }
+  }
+
+  bar.addEventListener("pointerdown", e => {
+    e.preventDefault();
+    const handle = e.target.closest(".handle");
+    if (handle) {
+      mode = handle.dataset.handle === "left" ? "resize-start" : "resize-end";
+    } else {
+      mode = "move";
+    }
+    startX = e.clientX;
+    origLeft = parseFloat(bar.style.left) || 0;
+    origWidth = parseFloat(bar.style.width) || 0;
+    dayShift = 0;
+    bar.classList.add("dragging");
+    bar.setPointerCapture(e.pointerId);
+    showTooltip(e);
+  });
+
+  bar.addEventListener("pointermove", e => {
+    if (!mode) return;
+    const dx = e.clientX - startX;
+    dayShift = Math.round(dx / State.ppd);
+    if (mode === "move") {
+      bar.style.left = Math.max(0, origLeft + dayShift * State.ppd) + "px";
+    } else if (mode === "resize-start") {
+      const newLeft = Math.max(0, origLeft + dayShift * State.ppd);
+      const delta = newLeft - origLeft;
+      const newWidth = Math.max(State.ppd, origWidth - delta);
+      bar.style.left = newLeft + "px";
+      bar.style.width = newWidth + "px";
+    } else if (mode === "resize-end") {
+      const newWidth = Math.max(State.ppd, origWidth + dayShift * State.ppd);
+      bar.style.width = newWidth + "px";
+    }
+    showTooltip(e);
+  });
+
+  bar.addEventListener("pointerup", async e => {
+    if (!mode) return;
+    bar.classList.remove("dragging");
+    hideTooltip();
+    const action = mode;
+    mode = null;
+    if (dayShift === 0) { render(); return; }
+    try {
+      if (action === "move") {
+        await moveTask(task, dayShift);
+      } else if (action === "resize-start") {
+        await resizeTaskStart(task, dayShift);
+      } else if (action === "resize-end") {
+        await resizeTaskEnd(task, dayShift);
+      }
+    } catch (err) {
+      console.error(err);
+      toast("Save failed: " + err.message, "error");
+      render();
+    }
+  });
+
+  bar.addEventListener("pointercancel", () => {
+    mode = null;
+    bar.classList.remove("dragging");
+    hideTooltip();
+    render();
+  });
+}
+
+async function moveTask(task, dayShift) {
+  const newStart = addDays(task.start, dayShift);
+  const newEnd = addDays(task.end, dayShift);
+  await saveTaskDates(task, newStart, newEnd);
+
+  if (State.cascadeOnMove && State.dependencies.length) {
+    const cascaded = await cascadeForward(task, dayShift);
+    if (cascaded > 0) toast(`Cascaded shift to ${cascaded} successor${cascaded===1?"":"s"}`, "success");
+  }
+}
+
+async function resizeTaskStart(task, dayShift) {
+  const newStart = addDays(task.start, dayShift);
+  if (newStart >= task.end) {
+    toast("Start must be before end", "error");
+    return render();
+  }
+  await saveTaskDates(task, newStart, task.end);
+}
+
+async function resizeTaskEnd(task, dayShift) {
+  const newEnd = addDays(task.end, dayShift);
+  if (newEnd <= task.start) {
+    toast("End must be after start", "error");
+    return render();
+  }
+  await saveTaskDates(task, task.start, newEnd);
+}
+
+async function saveTaskDates(task, newStart, newEnd) {
+  const { cfg } = State;
+
+  // Match the reference code pattern: save to startsavefid (the editable field)
+  // only. Update local state optimistically. No server reload.
+  // This avoids the formula-recalc-timing trap where reloading right after
+  // save pulls a stale display-start value and snaps the bar back.
+  const startSaveFid = cfg.fidStartSave || cfg.fidStart;
+  const row = {
+    [3]: { value: task.rid },
+    [startSaveFid]: { value: fmtISO(newStart) },
+  };
+  if (cfg.fidEnd) row[cfg.fidEnd] = { value: fmtISO(newEnd) };
+
+  setStatus(`Saving ${task.name}...`, "info");
+
+  try {
+    await updateRecords(
+      cfg.taskDbid,
+      [row],
+      [3, cfg.fidStart, cfg.fidEnd, cfg.fidStartSave].filter(x => x)
+    );
+
+    // Optimistic local update. The server has accepted the write; the UI
+    // should reflect that immediately. Next page load will re-pull from server.
+    task.start = newStart;
+    task.end = newEnd;
+    computeChartWindow();
+    applyFilters();
+
+    setStatus(`Saved ${task.name}`, "ok");
+    toast(`Saved ${task.name}`, "success");
+  } catch (err) {
+    console.error("Save failed:", err);
+    toast("Save failed: " + err.message, "error");
+    setStatus("Save failed", "err");
+    // Re-render to reset the bar position visually
+    render();
+    throw err;
+  }
+}
+
+async function cascadeForward(rootTask, dayShift) {
+  let count = 0;
+  const visited = new Set();
+  async function walk(rid) {
+    if (visited.has(rid)) return;
+    visited.add(rid);
+    const successors = State.dependencies.filter(d => d.pred === rid).map(d => d.succ);
+    for (const sRid of successors) {
+      const succ = State.tasks.find(t => t.rid === sRid);
+      if (!succ) continue;
+      const newStart = addDays(succ.start, dayShift);
+      const newEnd = addDays(succ.end, dayShift);
+      await saveTaskDates(succ, newStart, newEnd);
+      count++;
+      await walk(sRid);
+    }
+  }
+  await walk(rootTask.rid);
+  return count;
+}
+
+/* ============================================================
+   ACTIONS
+   ============================================================ */
+function setZoom(z) {
+  State.zoom = z;
+  if (z === "all") {
+    // Auto-fit: divide viewport width by total days to fill exactly
+    const scroll = document.getElementById("timeline-scroll");
+    const vw = scroll ? scroll.clientWidth : 1000;
+    const days = Math.max(totalDays(), 1);
+    State.ppd = Math.max(0.5, vw / days);
+  } else {
+    State.ppd = ZOOM_LEVELS[z].ppd;
+  }
+  render();
+}
+function fitToTasks() {
+  computeChartWindow();
+  // pick zoom that fits viewport
+  const scroll = document.getElementById("timeline-scroll");
+  if (scroll) {
+    const vw = scroll.clientWidth || 800;
+    const days = totalDays();
+    const idealPpd = vw / days;
+    let best = "quarter";
+    if (idealPpd >= 30) best = "day";
+    else if (idealPpd >= 15) best = "week";
+    else if (idealPpd >= 6) best = "month";
+    setZoom(best);
+  } else {
+    render();
+  }
+}
+function scrollToToday() {
+  const scroll = document.getElementById("timeline-scroll");
+  if (!scroll) return;
+  const today = new Date(); today.setHours(0,0,0,0);
+  if (today < State.chartStart || today > State.chartEnd) {
+    State.chartStart = addDays(today, -30);
+    State.chartEnd = addDays(today, 90);
+    render();
+  }
+  const x = dateToX(today);
+  scroll.scrollLeft = Math.max(0, x - scroll.clientWidth/3);
+  State._scrollLeft = scroll.scrollLeft;
+}
+function selectTask(rid) {
+  State.selectedRid = rid;
+  render();
+}
+function toggleGroup(key) {
+  State.groups[key] = !State.groups[key];
+  computeVisible();
+  render();
+}
+
+/* ============================================================
+   QUICK EDIT PANEL
+   ============================================================ */
+function openQuickEdit(rid) {
+  const t = State.tasks.find(x => x.rid === rid);
+  if (!t) return;
+  State.selectedRid = rid;
+  const sp = document.getElementById("side-panel");
+  sp.innerHTML = "";
+
+  const head = el("div", { class: "ph" }, [
+    el("h3", {}, [t.name]),
+    el("button", { class: "btn ghost", onclick: closeQuickEdit }, ["✕"]),
+  ]);
+
+  const body = el("div", { class: "pb" });
+
+  const nameField = renderField("Name", "text", t.name, v => t._editName = v);
+  const startField = renderField("Start Date", "date", fmtISO(t.start), v => t._editStart = v);
+  const endField = renderField("End Date", "date", fmtISO(t.end), v => t._editEnd = v);
+  const dates = el("div", { class: "row2" }, [startField, endField]);
+  body.appendChild(nameField);
+  body.appendChild(dates);
+
+  if (State.cfg.fidStatus) {
+    const statuses = [...new Set(State.tasks.map(x => x.status).filter(Boolean))];
+    body.appendChild(renderField("Status", "select", t.status, v => t._editStatus = v, statuses));
+  }
+  if (State.cfg.fidPercent) {
+    body.appendChild(renderField("% Complete", "number", t.percent, v => t._editPercent = v));
+  }
+  if (State.cfg.fidAssigned) {
+    body.appendChild(renderField("Assigned To", "text", t.assigned, v => t._editAssigned = v));
+  }
+  if (State.cfg.fidGroup) {
+    body.appendChild(renderField("Group", "text", t.group, v => t._editGroup = v));
+  }
+
+  body.appendChild(el("div", { class: "fld" }, [
+    el("label", {}, ["Quick Info"]),
+    el("div", { style: { fontSize: "12px", color: "var(--text-2)", lineHeight: "1.6" }}, [
+      el("div", {}, [`Record ID: ${t.rid}`]),
+      el("div", {}, [`Duration: ${diffDays(t.start, t.end)+1} day${diffDays(t.start, t.end)===0?"":"s"}`]),
+      t.baselineStart ? el("div", {}, [`Baseline: ${fmtUS(t.baselineStart)} → ${fmtUS(t.baselineEnd)}`]) : null,
+    ].filter(Boolean)),
+  ]));
+
+  const foot = el("div", { class: "pf" }, [
+    el("button", { class: "btn", onclick: () => { window.open(buildRecordUrl(t.rid), "_blank"); }}, ["Open Record"]),
+    el("button", { class: "btn ghost", onclick: closeQuickEdit }, ["Cancel"]),
+    el("button", { class: "btn primary", onclick: () => saveQuickEdit(t) }, ["Save"]),
+  ]);
+
+  sp.appendChild(head);
+  sp.appendChild(body);
+  sp.appendChild(foot);
+  sp.classList.add("open");
+}
+
+function renderField(label, type, value, onChange, options = []) {
+  const wrap = el("div", { class: "fld" }, [
+    el("label", {}, [label]),
+  ]);
+  let input;
+  if (type === "select") {
+    input = el("select");
+    input.appendChild(el("option", { value: "" }, [""]));
+    options.forEach(o => {
+      const op = el("option", { value: o }, [o]);
+      if (o === value) op.selected = true;
+      input.appendChild(op);
+    });
+  } else if (type === "textarea") {
+    input = el("textarea", { rows: "3" });
+    input.value = value || "";
+  } else {
+    input = el("input", { type, value: value || "" });
+  }
+  input.addEventListener("change", e => onChange(e.target.value));
+  input.addEventListener("input", e => onChange(e.target.value));
+  wrap.appendChild(input);
+  return wrap;
+}
+
+function closeQuickEdit() {
+  const sp = document.getElementById("side-panel");
+  sp.classList.remove("open");
+  State.selectedRid = null;
+  render();
+}
+
+async function saveQuickEdit(task) {
+  const { cfg } = State;
+  const startSaveFid = cfg.fidStartSave || cfg.fidStart;
+  const data = { [3]: { value: task.rid } };
+  if (task._editName !== undefined && cfg.fidName) data[cfg.fidName] = { value: task._editName };
+  if (task._editStart !== undefined) {
+    data[startSaveFid] = { value: task._editStart };
+  }
+  if (task._editEnd !== undefined && cfg.fidEnd) data[cfg.fidEnd] = { value: task._editEnd };
+  if (task._editStatus !== undefined && cfg.fidStatus) data[cfg.fidStatus] = { value: task._editStatus };
+  if (task._editPercent !== undefined && cfg.fidPercent) data[cfg.fidPercent] = { value: Number(task._editPercent) };
+  if (task._editAssigned !== undefined && cfg.fidAssigned) data[cfg.fidAssigned] = { value: task._editAssigned };
+  if (task._editGroup !== undefined && cfg.fidGroup) data[cfg.fidGroup] = { value: task._editGroup };
+  try {
+    setStatus("Saving...", "info");
+    await updateRecords(cfg.taskDbid, [data], [3]);
+    // Optimistic local update — same pattern as drag/resize save
+    if (task._editName !== undefined) task.name = task._editName;
+    if (task._editStart !== undefined) task.start = parseDate(task._editStart) || task.start;
+    if (task._editEnd !== undefined) task.end = parseDate(task._editEnd) || task.end;
+    if (task._editStatus !== undefined) task.status = task._editStatus;
+    if (task._editPercent !== undefined) task.percent = Number(task._editPercent);
+    if (task._editAssigned !== undefined) task.assigned = task._editAssigned;
+    if (task._editGroup !== undefined) task.group = task._editGroup;
+    closeQuickEdit();
+    computeChartWindow();
+    applyFilters();
+    toast("Saved", "success");
+  } catch (err) {
+    toast("Save failed: " + err.message, "error");
+  }
+}
+
+function buildRecordUrl(rid) {
+  return `https://${State.realm}/db/${State.cfg.taskDbid}?a=er&rid=${rid}`;
+}
+
+/* ============================================================
+   VALIDATION
+   ============================================================ */
+function validateSchedule() {
+  const issues = [];
+  const today = new Date(); today.setHours(0,0,0,0);
+
+  State.tasks.forEach(t => {
+    if (!t.start) issues.push({ rid: t.rid, sev: "error", msg: `${t.name} is missing a start date`, name: t.name });
+    if (!t.end) issues.push({ rid: t.rid, sev: "error", msg: `${t.name} is missing an end date`, name: t.name });
+    if (t.start && t.end && t.end < t.start) issues.push({ rid: t.rid, sev: "error", msg: `${t.name} ends before it starts`, name: t.name });
+    if (t.start && t.end && t.end < today && t.percent < 100) issues.push({ rid: t.rid, sev: "warning", msg: `${t.name} is past due (${t.percent}% complete)`, name: t.name });
+    if (t.baselineStart && t.start) {
+      const drift = diffDays(t.baselineStart, t.start);
+      if (Math.abs(drift) > 14) issues.push({ rid: t.rid, sev: "info", msg: `${t.name} drifted ${drift>0?"+":""}${drift} days from baseline`, name: t.name });
+    }
+  });
+
+  State.dependencies.forEach(d => {
+    const p = State.tasks.find(t => t.rid === d.pred);
+    const s = State.tasks.find(t => t.rid === d.succ);
+    if (!p || !s) return;
+    const requiredStart = addDays(p.end, 1 + (d.lag || 0));
+    if (s.start < requiredStart) {
+      issues.push({ rid: s.rid, sev: "error", msg: `${s.name} starts before ${p.name} finishes (+${d.lag||0} lag)`, name: s.name });
+    }
+  });
+
+  showValidationPanel(issues);
+}
+
+function showValidationPanel(issues) {
+  const sp = document.getElementById("side-panel");
+  sp.innerHTML = "";
+  sp.appendChild(el("div", { class: "ph" }, [
+    el("h3", {}, [`Schedule Validation`]),
+    el("button", { class: "btn ghost", onclick: closeQuickEdit }, ["✕"]),
+  ]));
+  const body = el("div", { class: "pb", style: { padding: 0 }});
+  if (!issues.length) {
+    body.appendChild(el("div", { class: "empty" }, [
+      el("div", { class: "ico" }, ["✓"]),
+      el("div", {}, ["No issues found."]),
+    ]));
+  } else {
+    const ul = el("ul", { class: "validation-list" });
+    issues.forEach(i => {
+      ul.appendChild(el("li", {
+        class: i.sev,
+        onclick: () => { selectTask(i.rid); scrollToTask(i.rid); }
+      }, [
+        el("div", { class: "sev" }),
+        el("div", {}, [
+          el("div", {}, [i.msg]),
+          el("div", { class: "meta" }, [`Record #${i.rid}`]),
+        ]),
+      ]));
+    });
+    body.appendChild(ul);
+  }
+  sp.appendChild(body);
+  sp.classList.add("open");
+}
+
+function scrollToTask(rid) {
+  const t = State.tasks.find(x => x.rid === rid);
+  if (!t) return;
+  const scroll = document.getElementById("timeline-scroll");
+  if (scroll) {
+    scroll.scrollLeft = Math.max(0, dateToX(t.start) - scroll.clientWidth/3);
+    State._scrollLeft = scroll.scrollLeft;
+  }
+}
+
+/* ============================================================
+   TOAST
+   ============================================================ */
+function toast(msg, type = "") {
+  const t = el("div", { class: "toast " + type }, [msg]);
+  document.body.appendChild(t);
+  setTimeout(() => t.remove(), 2400);
+}
+
+function showError(err) {
+  console.error(err);
+  const app = document.getElementById("app");
+  if (!document.getElementById("toolbar")) {
+    app.innerHTML = "";
+    app.appendChild(el("div", { class: "err" }, [
+      el("div", { class: "ico" }, ["⚠"]),
+      el("h2", {}, ["Could not load Gantt"]),
+      el("pre", {}, [String(err.message || err)]),
+      el("div", { style: { fontSize: "12px", color: "var(--text-3)", marginTop: "12px" }}, [
+        "Open ?setup=true to reconfigure."
+      ]),
+    ]));
+  } else {
+    setStatus("Error: " + (err.message || err), "err");
+  }
+}
+
+/* ============================================================
+   SETUP WIZARD
+   ============================================================ */
+const Wiz = {
+  step: 1,
+  realm: "",
+  taskDbid: "",
+  pageId: "",
+  fields: [],
+  mapping: {},
+  testResult: null,
+  depDbid: "",
+  depFields: [],
+  depMapping: {},
+};
+
+function startWizard() {
+  Wiz.realm = window.location.hostname;
+  Wiz.pageId = getParam("pageid") || getParam("pid") || "";
+  // Pre-fill from URL params if present
+  Wiz.taskDbid = getParam("taskdbid");
+  renderWizard();
+}
+
+function renderWizard() {
+  const app = document.getElementById("app");
+  app.innerHTML = `<div class="wizard"><div class="container" id="wizard-body"></div></div>`;
+  const body = document.getElementById("wizard-body");
+  body.innerHTML = "";
+
+  body.appendChild(el("h1", {}, ["Quickbase Gantt Setup"]));
+  body.appendChild(el("p", { class: "lead" }, [
+    "Wire any Quickbase task table into a fully featured Gantt chart in under a minute. No plugin install. No required schema."
+  ]));
+
+  // Steps strip
+  const steps = el("div", { class: "steps" });
+  ["Connect","Map fields","Optional features","Generate button"].forEach((label, i) => {
+    const n = i + 1;
+    const cls = Wiz.step === n ? "active" : (Wiz.step > n ? "done" : "");
+    steps.appendChild(el("div", { class: "step " + cls }, [
+      el("span", { class: "num" }, [String(n)]),
+      label,
+    ]));
+  });
+  body.appendChild(steps);
+
+  if (Wiz.step === 1) renderWizStep1(body);
+  else if (Wiz.step === 2) renderWizStep2(body);
+  else if (Wiz.step === 3) renderWizStep3(body);
+  else if (Wiz.step === 4) renderWizStep4(body);
+}
+
+function renderWizStep1(body) {
+  const card = el("div", { class: "card" }, [
+    el("h2", {}, ["Connect to your task table"]),
+    el("p", { class: "desc" }, [
+      "Paste the Task table DBID. The wizard will pull the schema, auto-detect Start, End, Name, and Status fields, and let you confirm."
+    ]),
+    el("div", { class: "fld" }, [
+      el("label", {}, ["Realm"]),
+      el("input", { type: "text", id: "wiz-realm", value: Wiz.realm, readonly: "readonly", style: { background: "var(--surface-2)" }}),
+      el("div", { class: "help" }, ["Auto-detected from this page's URL."]),
+    ]),
+    el("div", { class: "fld" }, [
+      el("label", {}, ["Code page ID"]),
+      el("input", { type: "text", id: "wiz-pageid", value: Wiz.pageId, placeholder: "e.g. 12 (the ID Quickbase assigns when you save this page)" }),
+      el("div", { class: "help" }, ["Found in URL after you save the code page: a=dbpage&pageid=XX. Used to build the launch button."]),
+    ]),
+    el("div", { class: "fld" }, [
+      el("label", {}, ["Task table DBID"]),
+      el("input", { type: "text", id: "wiz-dbid", value: Wiz.taskDbid, placeholder: "e.g. bvx6j9yjm" }),
+      el("div", { class: "help" }, ["Open your task table → Settings → Advanced. The DBID is in the URL after /db/."]),
+    ]),
+    el("div", { class: "card-actions" }, [
+      el("div", {}),
+      el("button", { class: "btn primary", onclick: wizFetchSchema }, ["Continue"]),
+    ]),
+  ]);
+  body.appendChild(card);
+}
+
+async function wizFetchSchema() {
+  Wiz.realm = document.getElementById("wiz-realm").value.trim();
+  Wiz.pageId = document.getElementById("wiz-pageid").value.trim();
+  Wiz.taskDbid = document.getElementById("wiz-dbid").value.trim();
+  if (!Wiz.taskDbid) { alert("Enter the task table DBID."); return; }
+  State.realm = Wiz.realm;
+
+  const btn = document.querySelector(".card-actions .btn.primary");
+  btn.disabled = true; btn.textContent = "Loading...";
+  try {
+    State.cfg = { taskDbid: Wiz.taskDbid, appToken: "" };
+    State.token = "";
+    const fields = await fetchSchema(Wiz.taskDbid);
+    Wiz.fields = fields;
+    Wiz.mapping = autoMap(fields);
+    Wiz.step = 2;
+    renderWizard();
+  } catch (e) {
+    btn.disabled = false; btn.textContent = "Continue";
+    alert("Could not load schema: " + e.message + "\n\nMake sure you're logged into Quickbase and the DBID is correct.");
+  }
+}
+
+function autoMap(fields) {
+  // Returns guessed mapping
+  const byType = {};
+  fields.forEach(f => {
+    const t = f.fieldType || "";
+    if (!byType[t]) byType[t] = [];
+    byType[t].push(f);
+  });
+
+  const dateFields = (byType["date"] || []).concat(byType["timestamp"] || []);
+  const textFields = (byType["text"] || []).concat(byType["text-multi-line"] || [], byType["text-multiple-choice"] || []);
+  const numericFields = (byType["numeric"] || []).concat(byType["percent"] || [], byType["currency"] || []);
+  const checkboxFields = byType["checkbox"] || [];
+  const refFields = (fields).filter(f => /reference|recordid lookup|lookup/i.test(f.fieldType || "") || /Project.*Record ID/i.test(f.label || ""));
+
+  const guess = {
+    fidName: pickFirst(fields, [/^name$/i, /phase\s*name/i, /task\s*name/i, /title/i, /^summary/i]) || pickFirst(textFields, [/.*/]),
+    fidStart: pickFirst(dateFields, [/^start$/i, /start.*date/i, /begin/i]),
+    fidEnd: pickFirst(dateFields, [/^end$/i, /end.*date/i, /finish/i, /due/i, /target/i]),
+    fidStartSave: pickFirst(dateFields, [/start.*date.*manual/i, /manual.*start/i, /editable.*start/i]),
+    fidStatus: pickFirst(fields, [/^status$/i, /state/i, /phase\s*status/i]),
+    fidPercent: pickFirst(numericFields, [/percent.*complete/i, /%.*complete/i, /progress/i]),
+    fidAssigned: pickFirst(fields, [/assigned.*to/i, /owner/i, /^assignee/i]),
+    fidGroup: pickFirst(fields, [/^phase$/i, /^group$/i, /work\s*stream/i, /category/i]),
+    fidMilestone: pickFirst(checkboxFields, [/milestone/i]),
+    fidPriority: pickFirst(fields, [/^priority$/i, /^rank$/i]),
+    fidProject: pickFirst(fields, [/project.*record\s*id/i, /related\s*project/i, /^project$/i, /project.*id/i]),
+    fidBaselineStart: pickFirst(dateFields, [/baseline.*start/i, /planned.*start/i, /original.*start/i]),
+    fidBaselineEnd: pickFirst(dateFields, [/baseline.*end/i, /planned.*end/i, /original.*end/i, /baseline.*finish/i]),
+  };
+  // remove zeros
+  Object.keys(guess).forEach(k => { if (!guess[k]) delete guess[k]; });
+  return guess;
+}
+
+function pickFirst(fields, patterns) {
+  for (const pat of patterns) {
+    for (const f of fields) {
+      if (pat.test(f.label || "")) return f.id;
+    }
+  }
+  return 0;
+}
+
+function renderWizStep2(body) {
+  const map = Wiz.mapping;
+
+  const card = el("div", { class: "card" }, [
+    el("h2", {}, ["Map your fields"]),
+    el("p", { class: "desc" }, [
+      `Found ${Wiz.fields.length} fields in the table. Auto-detected mappings are highlighted in green. Adjust if needed.`
+    ]),
+  ]);
+
+  const grid = el("div", { class: "field-map" });
+
+  function fieldRow(key, label, hint, required = false, filterFn = null) {
+    grid.appendChild(el("label", {}, [
+      el("span", {}, [label, required ? el("span", { class: "req" }, [" *"]) : null]),
+      el("span", { class: "hint" }, [hint || ""]),
+    ]));
+    const sel = el("select", { id: "wm-" + key });
+    sel.appendChild(el("option", { value: "" }, ["— Not mapped —"]));
+    const opts = filterFn ? Wiz.fields.filter(filterFn) : Wiz.fields;
+    opts.forEach(f => {
+      const o = el("option", { value: f.id }, [`${f.label} (FID ${f.id})`]);
+      if (map[key] === f.id) o.selected = true;
+      sel.appendChild(o);
+    });
+    sel.className = map[key] ? "match" : (required ? "unmapped" : "");
+    sel.addEventListener("change", e => {
+      Wiz.mapping[key] = Number(e.target.value) || 0;
+      sel.className = Wiz.mapping[key] ? "match" : (required ? "unmapped" : "");
+    });
+    grid.appendChild(sel);
+  }
+
+  grid.appendChild(el("div", { class: "group-title" }, ["Required"]));
+  fieldRow("fidName", "Task / Phase Name", "Bar label", true);
+  fieldRow("fidStart", "Start Date", "Where the bar begins", true, f => /date|timestamp/i.test(f.fieldType));
+  fieldRow("fidEnd", "End Date", "Where the bar ends", true, f => /date|timestamp/i.test(f.fieldType));
+
+  grid.appendChild(el("div", { class: "group-title" }, ["Project filter"]));
+  fieldRow("fidProject", "Project Record ID lookup", "FID on the task table that holds the parent project record ID", false);
+
+  grid.appendChild(el("div", { class: "group-title" }, ["Recommended"]));
+  fieldRow("fidStatus", "Status", "Drives bar color");
+  fieldRow("fidPercent", "Percent Complete", "0-100 progress fill", false, f => /numeric|percent/i.test(f.fieldType));
+  fieldRow("fidStartSave", "Editable Start Date", "Optional save target if Start is calculated/lookup. Leave blank to save back to Start Date.", false, f => /date|timestamp/i.test(f.fieldType));
+
+  grid.appendChild(el("div", { class: "group-title" }, ["Optional"]));
+  fieldRow("fidAssigned", "Assigned To", "Filter and quick edit");
+  fieldRow("fidGroup", "Group / Phase", "Bucket bars by phase");
+  fieldRow("fidMilestone", "Milestone Flag", "Checkbox; renders as a diamond", false, f => /checkbox/i.test(f.fieldType));
+  fieldRow("fidPriority", "Priority", "Display only");
+
+  grid.appendChild(el("div", { class: "group-title" }, ["Baselines (optional)"]));
+  fieldRow("fidBaselineStart", "Baseline Start", "Renders ghost bar under current schedule", false, f => /date|timestamp/i.test(f.fieldType));
+  fieldRow("fidBaselineEnd", "Baseline End", "", false, f => /date|timestamp/i.test(f.fieldType));
+
+  card.appendChild(grid);
+
+  card.appendChild(el("div", { class: "card-actions" }, [
+    el("button", { class: "btn", onclick: () => { Wiz.step = 1; renderWizard(); }}, ["Back"]),
+    el("div", { style: { display: "flex", gap: "8px" }}, [
+      el("button", { class: "btn", onclick: wizTestQuery }, ["Test Query"]),
+      el("button", { class: "btn primary", onclick: () => { wizCollectMapping(); Wiz.step = 3; renderWizard(); }}, ["Continue"]),
+    ]),
+  ]));
+
+  body.appendChild(card);
+
+  if (Wiz.testResult) {
+    const note = el("div", { class: "note " + (Wiz.testResult.ok ? "" : "err") }, [Wiz.testResult.msg]);
+    body.appendChild(note);
+  }
+}
+
+function wizCollectMapping() {
+  ["fidName","fidStart","fidEnd","fidProject","fidStatus","fidPercent","fidStartSave",
+   "fidAssigned","fidGroup","fidMilestone","fidPriority","fidBaselineStart","fidBaselineEnd"].forEach(k => {
+    const node = document.getElementById("wm-" + k);
+    if (node) Wiz.mapping[k] = Number(node.value) || 0;
+  });
+}
+
+async function wizTestQuery() {
+  wizCollectMapping();
+  if (!Wiz.mapping.fidName || !Wiz.mapping.fidStart || !Wiz.mapping.fidEnd) {
+    Wiz.testResult = { ok: false, msg: "Map Name, Start Date, and End Date before testing." };
+    renderWizard();
+    return;
+  }
+  try {
+    State.cfg = { taskDbid: Wiz.taskDbid, appToken: "" };
+    State.token = "";
+    const result = await queryRecords(Wiz.taskDbid, {
+      select: [3, Wiz.mapping.fidName, Wiz.mapping.fidStart, Wiz.mapping.fidEnd],
+      options: { top: 5 },
+    });
+    const n = (result.data || []).length;
+    Wiz.testResult = { ok: true, msg: `Test query succeeded. Sampled ${n} record${n===1?"":"s"} from the task table.` };
+  } catch (e) {
+    Wiz.testResult = { ok: false, msg: "Test failed: " + e.message };
+  }
+  renderWizard();
+}
+
+function renderWizStep3(body) {
+  const card = el("div", { class: "card" }, [
+    el("h2", {}, ["Optional: dependencies"]),
+    el("p", { class: "desc" }, [
+      "If you have a Dependencies table linking predecessor and successor tasks, point to it here. Skip if you don't."
+    ]),
+    el("div", { class: "fld" }, [
+      el("label", {}, ["Dependency table DBID (optional)"]),
+      el("input", { type: "text", id: "wiz-dep-dbid", value: Wiz.depDbid, placeholder: "Leave blank to skip" }),
+    ]),
+    el("div", { class: "card-actions" }, [
+      el("button", { class: "btn", onclick: () => { Wiz.step = 2; renderWizard(); }}, ["Back"]),
+      el("div", { style: { display: "flex", gap: "8px" }}, [
+        el("button", { class: "btn", onclick: wizLoadDepSchema }, ["Load Dep Schema"]),
+        el("button", { class: "btn primary", onclick: () => { Wiz.step = 4; renderWizard(); }}, ["Skip / Continue"]),
+      ]),
+    ]),
+  ]);
+  body.appendChild(card);
+
+  if (Wiz.depFields.length) {
+    const dcard = el("div", { class: "card" }, [
+      el("h2", {}, ["Map dependency fields"]),
+    ]);
+    const grid = el("div", { class: "field-map" });
+    function depRow(key, label, filterFn = null) {
+      grid.appendChild(el("label", {}, [label]));
+      const sel = el("select", { id: "wd-" + key });
+      sel.appendChild(el("option", { value: "" }, ["— Not mapped —"]));
+      const opts = filterFn ? Wiz.depFields.filter(filterFn) : Wiz.depFields;
+      opts.forEach(f => {
+        const o = el("option", { value: f.id }, [`${f.label} (FID ${f.id})`]);
+        if (Wiz.depMapping[key] === f.id) o.selected = true;
+        sel.appendChild(o);
+      });
+      sel.addEventListener("change", e => { Wiz.depMapping[key] = Number(e.target.value) || 0; });
+      grid.appendChild(sel);
+    }
+    depRow("fidDepPred", "Predecessor task RID");
+    depRow("fidDepSucc", "Successor task RID");
+    depRow("fidDepLag", "Lag (days)", f => /numeric/i.test(f.fieldType));
+    depRow("fidDepProject", "Project RID (filter)");
+    dcard.appendChild(grid);
+    body.appendChild(dcard);
+  }
+}
+
+async function wizLoadDepSchema() {
+  Wiz.depDbid = document.getElementById("wiz-dep-dbid").value.trim();
+  if (!Wiz.depDbid) { alert("Enter the dependency table DBID."); return; }
+  try {
+    State.token = "";
+    State.cfg = { taskDbid: Wiz.depDbid, appToken: "" };
+    Wiz.depFields = await fetchSchema(Wiz.depDbid);
+    // Auto-map
+    Wiz.depMapping = {
+      fidDepPred: pickFirst(Wiz.depFields, [/predecessor/i, /^pred/i]),
+      fidDepSucc: pickFirst(Wiz.depFields, [/successor/i, /^succ/i]),
+      fidDepLag: pickFirst(Wiz.depFields, [/lag/i]),
+      fidDepProject: pickFirst(Wiz.depFields, [/project.*record/i, /^project/i]),
+    };
+    renderWizard();
+  } catch (e) {
+    alert("Could not load: " + e.message);
+  }
+}
+
+function renderWizStep4(body) {
+  const m = Wiz.mapping;
+  const dm = Wiz.depMapping || {};
+  const params = new URLSearchParams();
+  params.set("a", "dbpage");
+  if (Wiz.pageId) params.set("pageid", Wiz.pageId);
+  params.set("taskdbid", Wiz.taskDbid);
+  if (m.fidName) params.set("namefid", m.fidName);
+  if (m.fidStart) params.set("startfid", m.fidStart);
+  if (m.fidEnd) params.set("endfid", m.fidEnd);
+  if (m.fidStartSave) params.set("startsavefid", m.fidStartSave);
+  if (m.fidProject) params.set("projectfid", m.fidProject);
+  if (m.fidStatus) params.set("statusfid", m.fidStatus);
+  if (m.fidPercent) params.set("percentfid", m.fidPercent);
+  if (m.fidAssigned) params.set("assignedfid", m.fidAssigned);
+  if (m.fidGroup) params.set("groupfid", m.fidGroup);
+  if (m.fidMilestone) params.set("milestonefid", m.fidMilestone);
+  if (m.fidPriority) params.set("priorityfid", m.fidPriority);
+  if (m.fidBaselineStart) params.set("baselinestartfid", m.fidBaselineStart);
+  if (m.fidBaselineEnd) params.set("baselineendfid", m.fidBaselineEnd);
+  if (Wiz.depDbid) params.set("depdbid", Wiz.depDbid);
+  if (dm.fidDepPred) params.set("deppredfid", dm.fidDepPred);
+  if (dm.fidDepSucc) params.set("depsuccfid", dm.fidDepSucc);
+  if (dm.fidDepLag) params.set("deplagfid", dm.fidDepLag);
+  if (dm.fidDepProject) params.set("depprojectfid", dm.fidDepProject);
+
+  const queryStr = params.toString();
+  const buttonFormula = `// Open Project Gantt
+URLRoot() & "db/" & AppID() &
+"?${queryStr}" &
+"&projectrid=" & URLEncode(ToText([Record ID#]))`;
+
+  const directUrl = `https://${Wiz.realm}/db/[YOUR_APP_DBID]?${queryStr}&projectrid=[PROJECT_RID]`;
+
+  const summary = el("div", { class: "summary-grid" }, []);
+  function pair(k, v) {
+    summary.appendChild(el("div", { class: "k" }, [k]));
+    summary.appendChild(el("div", { class: "v" }, [String(v || "—")]));
+  }
+  pair("Realm", Wiz.realm);
+  pair("Task DBID", Wiz.taskDbid);
+  pair("Code page ID", Wiz.pageId || "(set after saving)");
+  pair("Mapped fields", Object.keys(m).filter(k => m[k]).length);
+  if (Wiz.depDbid) pair("Dep DBID", Wiz.depDbid);
+
+  const card1 = el("div", { class: "card" }, [
+    el("h2", {}, ["Configuration summary"]),
+    summary,
+  ]);
+
+  const card2 = el("div", { class: "card" }, [
+    el("h2", {}, ["Project table button formula"]),
+    el("p", { class: "desc" }, [
+      "Add a Formula URL field to your Project table named 'Open Gantt'. Paste this. Add the field to the form."
+    ]),
+    el("div", { class: "code-block" }, [
+      el("button", { class: "copy", onclick: e => copyToClipboard(buttonFormula, e.target) }, ["Copy"]),
+      buttonFormula,
+    ]),
+  ]);
+
+  const card3 = el("div", { class: "card" }, [
+    el("h2", {}, ["Direct test URL"]),
+    el("p", { class: "desc" }, [
+      "Replace [YOUR_APP_DBID] and [PROJECT_RID] to test without the button. Or click below to launch with the current settings."
+    ]),
+    el("div", { class: "code-block" }, [
+      el("button", { class: "copy", onclick: e => copyToClipboard(directUrl, e.target) }, ["Copy"]),
+      directUrl,
+    ]),
+  ]);
+
+  const card4 = el("div", { class: "card" }, [
+    el("h2", {}, ["Launch the Gantt now"]),
+    el("p", { class: "desc" }, [
+      "Test it without leaving this page. (You'll need a project record ID to filter.)"
+    ]),
+    el("div", { class: "fld" }, [
+      el("label", {}, ["Project record ID to test with (optional)"]),
+      el("input", { type: "text", id: "wiz-launch-rid", placeholder: "e.g. 42" }),
+    ]),
+    el("div", { class: "card-actions" }, [
+      el("button", { class: "btn", onclick: () => { Wiz.step = 3; renderWizard(); }}, ["Back"]),
+      el("button", { class: "btn primary", onclick: wizLaunch }, ["Launch Gantt"]),
+    ]),
+  ]);
+
+  body.appendChild(card1);
+  body.appendChild(card2);
+  body.appendChild(card3);
+  body.appendChild(card4);
+}
+
+function copyToClipboard(text, btn) {
+  navigator.clipboard.writeText(text).then(() => {
+    btn.textContent = "Copied";
+    btn.classList.add("copied");
+    setTimeout(() => { btn.textContent = "Copy"; btn.classList.remove("copied"); }, 1200);
+  });
+}
+
+function wizLaunch() {
+  const rid = document.getElementById("wiz-launch-rid").value.trim();
+  // build URL pointing at THIS page
+  const m = Wiz.mapping; const dm = Wiz.depMapping || {};
+  const params = new URLSearchParams(window.location.search);
+  // strip setup
+  params.delete("setup");
+  params.set("taskdbid", Wiz.taskDbid);
+  if (m.fidName) params.set("namefid", m.fidName);
+  if (m.fidStart) params.set("startfid", m.fidStart);
+  if (m.fidEnd) params.set("endfid", m.fidEnd);
+  if (m.fidStartSave) params.set("startsavefid", m.fidStartSave);
+  if (m.fidProject) params.set("projectfid", m.fidProject);
+  if (m.fidStatus) params.set("statusfid", m.fidStatus);
+  if (m.fidPercent) params.set("percentfid", m.fidPercent);
+  if (m.fidAssigned) params.set("assignedfid", m.fidAssigned);
+  if (m.fidGroup) params.set("groupfid", m.fidGroup);
+  if (m.fidMilestone) params.set("milestonefid", m.fidMilestone);
+  if (m.fidPriority) params.set("priorityfid", m.fidPriority);
+  if (m.fidBaselineStart) params.set("baselinestartfid", m.fidBaselineStart);
+  if (m.fidBaselineEnd) params.set("baselineendfid", m.fidBaselineEnd);
+  if (Wiz.depDbid) params.set("depdbid", Wiz.depDbid);
+  if (dm.fidDepPred) params.set("deppredfid", dm.fidDepPred);
+  if (dm.fidDepSucc) params.set("depsuccfid", dm.fidDepSucc);
+  if (dm.fidDepLag) params.set("deplagfid", dm.fidDepLag);
+  if (dm.fidDepProject) params.set("depprojectfid", dm.fidDepProject);
+  if (rid) params.set("projectrid", rid);
+  window.location.search = params.toString();
+}
+
+/* ============================================================
+   BOOT
+   ============================================================ */
+async function boot() {
+  if (getBoolParam("setup")) {
+    startWizard();
+    return;
+  }
+  loadConfig();
+  if (!State.cfg.taskDbid || !State.cfg.fidName || !State.cfg.fidStart || !State.cfg.fidEnd) {
+    showError(new Error("Missing required config. Append &setup=true to run the setup wizard."));
+    return;
+  }
+  // Initialize chart window so the first render after loadTasks doesn't blow up
+  // if the table is empty or loadTasks errors.
+  State.chartStart = addDays(new Date(), -30);
+  State.chartEnd = addDays(new Date(), 90);
+  renderShell();
+  setStatus("Loading tasks...", "info");
+  try {
+    await loadTasks();
+    setTimeout(scrollToToday, 100);
+  } catch (e) {
+    showError(e);
+  }
+}
+
+// keyboard shortcuts
+document.addEventListener("keydown", e => {
+  if (e.target && /input|textarea|select/i.test(e.target.tagName)) return;
+  if (e.key === "t" || e.key === "T") scrollToToday();
+  if (e.key === "f" || e.key === "F") fitToTasks();
+  if (e.key === "Escape") closeQuickEdit();
+  if (e.key === "1") setZoom("day");
+  if (e.key === "2") setZoom("week");
+  if (e.key === "3") setZoom("month");
+  if (e.key === "4") setZoom("quarter");
+  if (e.key === "5") setZoom("all");
+  if (e.key === "v" || e.key === "V") validateSchedule();
+});
+
+boot();
+</script>
+</body>
+</html>
