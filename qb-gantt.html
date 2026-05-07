@@ -296,6 +296,18 @@ a:hover{text-decoration:underline}
 }
 .fld .help{font-size:11px;color:var(--text-3);margin-top:4px}
 .row2{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.dep-section{margin-top:16px;border-top:1px solid var(--border);padding-top:14px}
+.dep-section h4{font-size:13px;font-weight:600;color:var(--text-2);margin:0 0 10px}
+.dep-item{display:flex;align-items:center;gap:8px;padding:6px 8px;background:var(--surface-2);border-radius:var(--radius-sm);margin-bottom:6px;font-size:12px}
+.dep-item .dep-type{font-weight:600;color:var(--accent);min-width:24px}
+.dep-item .dep-name{flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.dep-item .dep-lag{color:var(--text-3);font-size:11px}
+.dep-item .dep-del{background:none;border:none;color:var(--text-3);cursor:pointer;padding:2px 4px;font-size:14px;line-height:1}
+.dep-item .dep-del:hover{color:var(--danger)}
+.dep-add{display:grid;grid-template-columns:1fr auto auto auto;gap:6px;align-items:end;margin-top:8px}
+.dep-add select,.dep-add input{padding:6px 8px;border:1px solid var(--border);border-radius:var(--radius-sm);background:var(--surface);font-size:12px}
+.dep-add input[type=number]{width:50px}
+.dep-add .btn{padding:6px 10px;font-size:12px}
 
 /* ========== SETUP WIZARD ========== */
 .wizard{
@@ -434,6 +446,205 @@ a:hover{text-decoration:underline}
   border:1px solid var(--border);border-radius:3px;font-size:11px;
   font-family:ui-monospace,Menlo,monospace;color:var(--text-2);
 }
+
+/* ========== READ-ONLY INDICATOR ========== */
+.readonly-pill{
+  padding:3px 10px;border-radius:999px;background:#fef2f2;
+  color:var(--danger);font-size:11px;font-weight:600;border:1px solid #fecaca;
+}
+
+/* ========== PENDING BADGE ========== */
+.badge{
+  display:inline-flex;align-items:center;justify-content:center;
+  min-width:18px;height:18px;padding:0 5px;border-radius:999px;
+  background:var(--danger);color:#fff;font-size:10px;font-weight:700;
+  margin-left:4px;
+}
+
+/* ========== SUMMARY BAR (Hierarchy) ========== */
+.bar.summary{
+  height:8px;top:15px;border-radius:0;cursor:default;
+  background:var(--text-2);
+}
+.bar.summary::before,.bar.summary::after{
+  content:"";position:absolute;bottom:-4px;width:8px;height:8px;
+  border-left:3px solid var(--text-2);border-bottom:3px solid var(--text-2);
+}
+.bar.summary::before{left:0;transform:skewY(-30deg)}
+.bar.summary::after{right:0;transform:skewY(30deg)}
+.indent{display:inline-flex;align-items:center;gap:4px}
+.chevron-btn{
+  cursor:pointer;background:none;border:0;padding:0 2px;font-size:12px;
+  color:var(--text-3);transition:transform .15s;
+}
+.chevron-btn.collapsed{transform:rotate(-90deg)}
+
+/* ========== CONNECTOR (Dep Draw) ========== */
+.connector{
+  position:absolute;right:-6px;top:50%;transform:translateY(-50%);
+  width:12px;height:12px;border-radius:50%;border:2px solid var(--accent);
+  background:var(--surface);cursor:crosshair;opacity:0;transition:opacity .15s;
+  z-index:4;
+}
+.bar:hover .connector{opacity:1}
+.dep-draw-line{stroke:var(--accent);stroke-width:2;stroke-dasharray:6,3;fill:none}
+
+/* ========== INLINE EDIT ========== */
+.inline-input{
+  width:100%;padding:2px 4px;border:1px solid var(--accent);
+  border-radius:3px;font-size:12px;background:var(--surface);
+  box-shadow:0 0 0 2px var(--accent-soft);
+}
+
+/* ========== DRAG HANDLE (Reorder) ========== */
+.drag-grip{
+  cursor:grab;color:var(--text-3);font-size:14px;user-select:none;
+  display:flex;align-items:center;justify-content:center;
+}
+.drag-grip:hover{color:var(--text-2)}
+.list-row.drag-over{box-shadow:inset 0 -2px 0 var(--accent)}
+
+/* ========== PROGRESS HANDLE ========== */
+.pct-handle{
+  position:absolute;top:0;bottom:0;width:8px;cursor:ew-resize;
+  background:rgba(255,255,255,.5);border-left:2px solid rgba(255,255,255,.8);
+  opacity:0;transition:opacity .15s;z-index:3;
+}
+.bar:hover .pct-handle{opacity:1}
+
+/* ========== HOLIDAY SHADING ========== */
+.row-grid.holiday{background:#fef2f2;width:auto;left:0;border:0;opacity:.4}
+
+/* ========== CONTEXT MENU ========== */
+.ctx-menu{
+  position:fixed;z-index:40;background:var(--surface);
+  border:1px solid var(--border);border-radius:var(--radius);
+  box-shadow:var(--shadow-lg);min-width:180px;padding:4px 0;
+}
+.ctx-item{
+  display:flex;align-items:center;gap:8px;padding:7px 14px;
+  font-size:13px;cursor:pointer;color:var(--text);
+  border:none;background:none;width:100%;text-align:left;
+}
+.ctx-item:hover{background:var(--surface-2)}
+.ctx-item.danger{color:var(--danger)}
+.ctx-item.danger:hover{background:#fef2f2}
+.ctx-sep{height:1px;background:var(--border);margin:4px 0}
+
+/* ========== TOUCH-ACTION (global) ========== */
+.bar,.bar .handle,.pct-handle,.divider-cell{touch-action:none}
+
+/* ========== MOBILE RESPONSIVE ========== */
+@media (max-width:768px){
+  /* Layout overrides */
+  .main.mobile-hidden{display:none}
+  .statusbar{display:none}
+  .mobile-cards{
+    flex:1;overflow-y:auto;-webkit-overflow-scrolling:touch;
+    padding-bottom:80px;display:flex;flex-direction:column;
+  }
+
+  /* Toolbar mobile */
+  .toolbar{flex-wrap:wrap;height:auto;min-height:48px;gap:6px;padding:8px 12px}
+  .toolbar h1 .sub{display:none}
+  .toolbar .spacer{display:none}
+  .toolbar .mobile-hide{display:none}
+
+  /* Filter bar collapse */
+  .filterbar{max-height:0;overflow:hidden;padding:0 12px;transition:max-height .25s ease,padding .25s ease}
+  .filterbar.expanded{max-height:400px;padding:8px 12px}
+  .filterbar .search{width:100%}
+  .filterbar .legend{display:none}
+
+  /* Side panel full-screen */
+  .side-panel{width:100vw;border-left:none}
+  .side-panel .pf{flex-wrap:wrap}
+  .side-panel .pf .btn{min-height:44px;flex:1}
+
+  /* Section headers */
+  .mobile-section-header{
+    position:sticky;top:0;z-index:5;
+    display:flex;align-items:center;gap:8px;
+    padding:10px 16px;background:var(--surface-2);
+    border-bottom:1px solid var(--border);
+    font-size:13px;font-weight:600;color:var(--text);
+  }
+  .mobile-section-header .dot{
+    width:10px;height:10px;border-radius:50%;flex-shrink:0;
+  }
+  .mobile-section-header .count{
+    margin-left:auto;font-weight:400;color:var(--text-3);font-size:12px;
+  }
+
+  /* Card styles */
+  .mobile-card{
+    padding:14px 16px;border-bottom:1px solid var(--border);
+    display:flex;flex-direction:column;gap:8px;
+    background:var(--surface);cursor:pointer;
+    transition:background .1s;
+  }
+  .mobile-card:active{background:var(--surface-2)}
+  .card-top{
+    display:flex;align-items:center;gap:8px;
+  }
+  .card-top .card-name{
+    flex:1;min-width:0;font-weight:600;font-size:14px;
+    white-space:nowrap;overflow:hidden;text-overflow:ellipsis;
+  }
+  .card-top .status-badge{
+    padding:2px 8px;border-radius:999px;font-size:11px;font-weight:500;
+    white-space:nowrap;flex-shrink:0;
+  }
+  .card-meta{
+    display:flex;align-items:center;gap:12px;font-size:12px;color:var(--text-2);
+    flex-wrap:wrap;
+  }
+  .card-meta .meta-item{display:flex;align-items:center;gap:4px}
+  .card-progress{
+    height:4px;border-radius:2px;background:var(--surface-3);overflow:hidden;
+  }
+  .card-progress-fill{height:100%;border-radius:2px;transition:width .2s}
+
+  /* Touch targets */
+  .btn{min-height:44px}
+  .seg button{min-height:40px;padding:8px 12px}
+  .ctx-item{min-height:44px}
+
+  /* Overflow panel (slide-in) */
+  .overflow-panel{
+    position:fixed;top:0;right:0;bottom:0;width:260px;z-index:35;
+    background:var(--surface);box-shadow:var(--shadow-lg);
+    transform:translateX(100%);transition:transform .2s ease;
+    overflow-y:auto;padding:12px 0;
+  }
+  .overflow-panel.open{transform:translateX(0)}
+  .overflow-panel .overflow-item{
+    display:flex;align-items:center;gap:10px;padding:10px 16px;
+    font-size:14px;cursor:pointer;color:var(--text);
+    border:none;background:none;width:100%;text-align:left;
+  }
+  .overflow-panel .overflow-item:active{background:var(--surface-2)}
+  .overflow-panel .overflow-sep{height:1px;background:var(--border);margin:4px 0}
+  .overflow-panel .overflow-label{
+    padding:6px 16px;font-size:11px;font-weight:600;color:var(--text-3);
+    text-transform:uppercase;letter-spacing:.5px;
+  }
+  .overflow-backdrop{
+    position:fixed;inset:0;background:rgba(0,0,0,.3);z-index:34;
+    display:none;
+  }
+  .overflow-backdrop.open{display:block}
+
+  /* FAB */
+  .fab{
+    position:fixed;bottom:20px;right:20px;width:56px;height:56px;
+    border-radius:50%;background:var(--accent);color:#fff;
+    display:flex;align-items:center;justify-content:center;
+    font-size:24px;box-shadow:var(--shadow-lg);z-index:25;
+    border:none;cursor:pointer;transition:background .15s;
+  }
+  .fab:active{background:var(--accent-dark)}
+}
 </style>
 </head>
 <body>
@@ -477,6 +688,7 @@ const State = {
   ppd: 22,
   chartStart: null,
   chartEnd: null,
+  columnOrder: ["id", "name", "dates", "status"],
   filters: {
     search: "",
     status: "",
@@ -488,6 +700,12 @@ const State = {
   showBaselines: true,
   showDeps: true,
   cascadeOnMove: false,
+  showLabels: true,
+  undoStack: [],
+  redoStack: [],
+  pendingChanges: [],
+  collapsedTasks: {},
+  mobileView: "auto",   // "auto" | "cards" | "gantt"
 };
 
 function getParam(name) {
@@ -503,6 +721,13 @@ function getNumParam(name, fallback=0) {
   if (!v) return fallback;
   const n = Number(v);
   return isNaN(n) ? fallback : n;
+}
+
+function isMobile() { return window.innerWidth <= 768; }
+function detectMobileView() {
+  if (State.mobileView === "cards") return true;
+  if (State.mobileView === "gantt") return false;
+  return isMobile();
 }
 
 function loadConfig() {
@@ -528,6 +753,12 @@ function loadConfig() {
     fidMilestone:    getNumParam("milestonefid"),
     fidPriority:     getNumParam("priorityfid"),
 
+    // Hierarchy & ordering
+    fidParentTask:   getNumParam("parentfid"),
+    fidSortOrder:    getNumParam("sortorderfid"),
+    fidWbs:          getNumParam("wbsfid"),
+    fidDuration:     getNumParam("durationfid"),
+
     // Baselines
     fidBaselineStart: getNumParam("baselinestartfid"),
     fidBaselineEnd:   getNumParam("baselineendfid"),
@@ -538,6 +769,7 @@ function loadConfig() {
     fidDepSucc:      getNumParam("depsuccfid"),
     fidDepLag:       getNumParam("deplagfid"),
     fidDepProject:   getNumParam("depprojectfid"),
+    fidDepType:      getNumParam("deptypefid"),
 
     // App token (rare; only if temp token requires it)
     appToken:        getParam("apptoken"),
@@ -549,6 +781,12 @@ function loadConfig() {
     pageId:          getParam("pageid") || getParam("pid") || "",
     initialZoom:     getParam("zoom") || "week",
     pixelsPerDay:    getNumParam("ppd", 0),
+
+    // Mode flags
+    readOnly:        getBoolParam("readonly", false),
+    autoSave:        getBoolParam("autosave", true),
+    skipWeekends:    getBoolParam("skipweekends", true),
+    holidays:        getParam("holidays"),
   };
   State.cfg = cfg;
   State.zoom = ZOOM_LEVELS[cfg.initialZoom] ? cfg.initialZoom : "week";
@@ -646,6 +884,11 @@ function fmtUS(d) {
   if (!d) return "";
   return `${String(d.getMonth()+1).padStart(2,"0")}/${String(d.getDate()).padStart(2,"0")}/${d.getFullYear()}`;
 }
+function escapeHtml(s) {
+  const d = document.createElement("div");
+  d.textContent = s;
+  return d.innerHTML;
+}
 function addDays(d, n) {
   const x = new Date(d);
   x.setDate(x.getDate() + n);
@@ -664,6 +907,53 @@ function startOfMonth(d) { return new Date(d.getFullYear(), d.getMonth(), 1); }
 function startOfQuarter(d) { return new Date(d.getFullYear(), Math.floor(d.getMonth()/3)*3, 1); }
 function startOfYear(d) { return new Date(d.getFullYear(), 0, 1); }
 function isWeekend(d) { const w = d.getDay(); return w === 0 || w === 6; }
+
+/* ============================================================
+   WORKING-DAY CALENDAR
+   ============================================================ */
+function parseHolidays(str) {
+  if (!str) return [];
+  return str.split(",").map(s => s.trim()).filter(Boolean);
+}
+
+function isHoliday(d) {
+  const holidays = parseHolidays(State.cfg.holidays);
+  if (!holidays.length) return false;
+  const mmdd = `${String(d.getMonth()+1).padStart(2,"0")}-${String(d.getDate()).padStart(2,"0")}`;
+  const full = fmtISO(d);
+  return holidays.some(h => h === mmdd || h === full);
+}
+
+function isWorkingDay(d) {
+  if (State.cfg.skipWeekends && isWeekend(d)) return false;
+  if (isHoliday(d)) return false;
+  return true;
+}
+
+function addWorkingDays(d, n) {
+  if (!State.cfg.skipWeekends && !State.cfg.holidays) return addDays(d, n);
+  const x = new Date(d);
+  const dir = n >= 0 ? 1 : -1;
+  let remaining = Math.abs(n);
+  while (remaining > 0) {
+    x.setDate(x.getDate() + dir);
+    if (isWorkingDay(x)) remaining--;
+  }
+  return x;
+}
+
+function diffWorkingDays(a, b) {
+  if (!State.cfg.skipWeekends && !State.cfg.holidays) return diffDays(a, b);
+  let count = 0;
+  const start = a < b ? new Date(a) : new Date(b);
+  const end = a < b ? b : a;
+  const cursor = new Date(start);
+  while (cursor < end) {
+    cursor.setDate(cursor.getDate() + 1);
+    if (isWorkingDay(cursor)) count++;
+  }
+  return a < b ? count : -count;
+}
 
 /* ============================================================
    FIELD VALUE HELPERS
@@ -695,6 +985,7 @@ async function loadTasks() {
     cfg.fidGroup, cfg.fidAssigned, cfg.fidMilestone, cfg.fidPriority,
     cfg.fidBaselineStart, cfg.fidBaselineEnd,
     cfg.fidProject,
+    cfg.fidParentTask, cfg.fidSortOrder, cfg.fidWbs, cfg.fidDuration,
   ].filter(x => x && x > 0);
 
   const where = [];
@@ -763,13 +1054,19 @@ function mapTask(row) {
     group: groupVal, assigned, priority,
     start, end, isMilestone,
     baselineStart, baselineEnd,
+    parentRid: Number(fv(row, cfg.fidParentTask) || 0),
+    sortOrder: Number(fv(row, cfg.fidSortOrder) || 0),
+    wbs: String(fv(row, cfg.fidWbs) || ""),
+    duration: Number(fv(row, cfg.fidDuration) || 0),
+    depth: 0,
+    isParent: false,
     raw: row,
   };
 }
 
 async function loadDeps() {
   const { cfg } = State;
-  const select = [3, cfg.fidDepPred, cfg.fidDepSucc, cfg.fidDepLag, cfg.fidDepProject].filter(x => x && x > 0);
+  const select = [3, cfg.fidDepPred, cfg.fidDepSucc, cfg.fidDepLag, cfg.fidDepProject, cfg.fidDepType].filter(x => x && x > 0);
   const where = (cfg.fidDepProject && cfg.projectRid)
     ? `{${cfg.fidDepProject}.EX.${cfg.projectRid}}` : undefined;
   const result = await queryRecords(cfg.depDbid, { select, where, options: { top: 1000 } });
@@ -778,6 +1075,7 @@ async function loadDeps() {
     pred: Number(fv(r, cfg.fidDepPred) || 0),
     succ: Number(fv(r, cfg.fidDepSucc) || 0),
     lag: Number(fv(r, cfg.fidDepLag) || 0),
+    type: String(fv(r, cfg.fidDepType) || "FS").toUpperCase(),
   })).filter(d => d.pred && d.succ);
 }
 
@@ -815,7 +1113,15 @@ function applyFilters() {
 }
 
 function computeVisible() {
-  const list = State.filtered.slice();
+  let list = State.filtered.slice();
+
+  // Hierarchy: build parent-child tree when parentfid is configured
+  if (State.cfg.fidParentTask) {
+    list = buildHierarchy(list);
+  } else if (State.cfg.fidSortOrder) {
+    list.sort((a, b) => a.sortOrder - b.sortOrder);
+  }
+
   if (State.groupBy === "none") {
     State.visible = list.map(t => ({ type: "task", task: t }));
     return;
@@ -836,6 +1142,83 @@ function computeVisible() {
     if (!State.groups[k]) buckets[k].forEach(t => out.push({ type: "task", task: t, group: k }));
   });
   State.visible = out;
+}
+
+/* ============================================================
+   TASK HIERARCHY
+   ============================================================ */
+function buildHierarchy(tasks) {
+  const byRid = {};
+  tasks.forEach(t => { byRid[t.rid] = t; t.children = []; t.isParent = false; });
+
+  // Build tree
+  const roots = [];
+  tasks.forEach(t => {
+    const parent = t.parentRid ? byRid[t.parentRid] : null;
+    if (parent) {
+      parent.children.push(t);
+      parent.isParent = true;
+    } else {
+      roots.push(t);
+    }
+  });
+
+  // Sort children by sortOrder within each level
+  function sortChildren(node) {
+    if (node.children.length) {
+      node.children.sort((a, b) => a.sortOrder - b.sortOrder);
+      node.children.forEach(sortChildren);
+    }
+  }
+  roots.sort((a, b) => a.sortOrder - b.sortOrder);
+  roots.forEach(sortChildren);
+
+  // Roll up summary dates and percent for parent tasks
+  function rollUp(node) {
+    if (!node.children.length) return;
+    node.children.forEach(rollUp);
+    let minStart = node.children[0].start;
+    let maxEnd = node.children[0].end;
+    let totalPct = 0;
+    node.children.forEach(c => {
+      if (c.start && (!minStart || c.start < minStart)) minStart = c.start;
+      if (c.end && (!maxEnd || c.end > maxEnd)) maxEnd = c.end;
+      totalPct += c.percent;
+    });
+    if (minStart) node.start = minStart;
+    if (maxEnd) node.end = maxEnd;
+    node.percent = Math.round(totalPct / node.children.length);
+  }
+  roots.forEach(rollUp);
+
+  // DFS flatten respecting collapsed state
+  const result = [];
+  function dfs(node, depth) {
+    node.depth = depth;
+    result.push(node);
+    if (node.isParent && State.collapsedTasks[node.rid]) return;
+    node.children.forEach(c => dfs(c, depth + 1));
+  }
+  roots.forEach(r => dfs(r, 0));
+  return result;
+}
+
+function toggleTaskCollapse(rid) {
+  State.collapsedTasks[rid] = !State.collapsedTasks[rid];
+  computeVisible();
+  render();
+}
+
+function expandAll() {
+  State.collapsedTasks = {};
+  computeVisible();
+  render();
+}
+
+function collapseAll() {
+  State.tasks.filter(t => t.isParent).forEach(t => { State.collapsedTasks[t.rid] = true; });
+  computeVisible();
+  render();
 }
 
 /* ============================================================
@@ -868,11 +1251,23 @@ function xToDate(x) { return addDays(State.chartStart, Math.round(x / State.ppd)
    RENDER
    ============================================================ */
 function render() {
-  renderToolbar();
+  const showCards = detectMobileView();
+  renderToolbar(showCards);
   renderStatusBar();
-  renderFilterBar();
-  renderList();
-  renderTimeline();
+  renderFilterBar(showCards);
+  const main = document.getElementById("main");
+  if (showCards) {
+    if (main) main.classList.add("mobile-hidden");
+    renderMobileCards();
+    const fab = document.getElementById("mobile-fab");
+    if (fab) fab.style.display = "";
+  } else {
+    if (main) main.classList.remove("mobile-hidden");
+    removeMobileCards();
+    renderList();
+    renderTimeline();
+  }
+  persistSettings();
 }
 
 function el(tag, attrs = {}, children = []) {
@@ -891,6 +1286,69 @@ function el(tag, attrs = {}, children = []) {
   return e;
 }
 
+const COL_DEFS = {
+  id:     { label: "ID",     resize: false },
+  name:   { label: "Name",   resize: true, resizeCol: "name"   },
+  dates:  { label: "Dates",  resize: true, resizeCol: "dates"  },
+  status: { label: "Status", resize: false },
+};
+
+function buildColumnCSS(order) {
+  const widths = order.map(c => {
+    if (c === "id") return "50px";
+    if (c === "name") return "var(--col-name,1fr)";
+    if (c === "dates") return "var(--col-dates,100px)";
+    if (c === "status") return "var(--col-status,90px)";
+    return "1fr";
+  });
+  return widths.join(" ");
+}
+
+function renderListHead() {
+  const head = document.getElementById("list-head");
+  if (!head) return;
+  head.innerHTML = "";
+  head.style.gridTemplateColumns = buildColumnCSS(State.columnOrder);
+
+  State.columnOrder.forEach(colId => {
+    const def = COL_DEFS[colId];
+    const hdr = el("div", { draggable: "true", "data-colid": colId, style: { cursor: "grab" }}, [def.label]);
+    if (def.resize) {
+      hdr.appendChild(el("div", { class: "col-resize", "data-col": def.resizeCol, title: "Drag to resize" }));
+    }
+    // Drag reorder events
+    hdr.addEventListener("dragstart", e => {
+      e.dataTransfer.setData("text/plain", colId);
+      e.dataTransfer.effectAllowed = "move";
+      hdr.style.opacity = "0.5";
+    });
+    hdr.addEventListener("dragend", () => { hdr.style.opacity = ""; });
+    hdr.addEventListener("dragover", e => {
+      e.preventDefault();
+      e.dataTransfer.dropEffect = "move";
+      hdr.style.borderLeft = "2px solid var(--accent)";
+    });
+    hdr.addEventListener("dragleave", () => { hdr.style.borderLeft = ""; });
+    hdr.addEventListener("drop", e => {
+      e.preventDefault();
+      hdr.style.borderLeft = "";
+      const from = e.dataTransfer.getData("text/plain");
+      if (from === colId) return;
+      const arr = [...State.columnOrder];
+      const fi = arr.indexOf(from);
+      const ti = arr.indexOf(colId);
+      if (fi < 0 || ti < 0) return;
+      arr.splice(fi, 1);
+      arr.splice(ti, 0, from);
+      State.columnOrder = arr;
+      renderListHead();
+      renderList();
+      persistSettings();
+    });
+    head.appendChild(hdr);
+  });
+}
+
 function renderShell() {
   const app = document.getElementById("app");
   app.innerHTML = `
@@ -899,12 +1357,7 @@ function renderShell() {
     <div class="statusbar" id="statusbar"></div>
     <div class="main" id="main">
       <div class="left">
-        <div class="list-head">
-          <div>ID</div>
-          <div>Name<div class="col-resize" data-col="name" title="Drag to resize"></div></div>
-          <div>Dates<div class="col-resize" data-col="dates" title="Drag to resize"></div></div>
-          <div>Status</div>
-        </div>
+        <div class="list-head" id="list-head"></div>
         <div class="list-body" id="list-body"></div>
       </div>
       <div class="divider-cell" id="panel-divider" title="Drag to resize panel"></div>
@@ -918,7 +1371,30 @@ function renderShell() {
       </div>
     </div>
     <div class="side-panel" id="side-panel"></div>
+    <div class="mobile-cards" id="mobile-cards" style="display:none"></div>
+    <div class="overflow-backdrop" id="overflow-backdrop"></div>
+    <div class="overflow-panel" id="overflow-panel"></div>
   `;
+  // FAB for mobile (guarded by readOnly)
+  if (!State.cfg.readOnly) {
+    const fab = document.createElement("button");
+    fab.className = "fab";
+    fab.id = "mobile-fab";
+    fab.style.display = "none";
+    fab.textContent = "+";
+    fab.addEventListener("click", () => createTask());
+    document.getElementById("app").appendChild(fab);
+  }
+  // Debounced resize listener for mobile/desktop threshold crossing
+  let resizeTimer;
+  let wasMobile = isMobile();
+  window.addEventListener("resize", () => {
+    clearTimeout(resizeTimer);
+    resizeTimer = setTimeout(() => {
+      const nowMobile = isMobile();
+      if (nowMobile !== wasMobile) { wasMobile = nowMobile; render(); }
+    }, 150);
+  });
   // Restore saved layout from URL params if provided
   const root = document.documentElement;
   const savedLeft = getNumParam("leftw", 0);
@@ -927,6 +1403,7 @@ function renderShell() {
   if (savedLeft) root.style.setProperty("--left-w", savedLeft + "px");
   if (savedColName) root.style.setProperty("--col-name", savedColName + "px");
   if (savedColDates) root.style.setProperty("--col-dates", savedColDates + "px");
+  renderListHead();
   attachLayoutResizers();
 }
 
@@ -988,16 +1465,91 @@ function attachLayoutResizers() {
   });
 }
 
-function renderToolbar() {
+function renderToolbar(showCards = false) {
   const tb = document.getElementById("toolbar");
   if (!tb) return;
   const z = State.zoom;
   tb.innerHTML = "";
+
+  // Title (always shown)
   tb.appendChild(el("h1", {}, [
     State.cfg.title,
     el("span", { class: "sub" }, [`${State.tasks.length} task${State.tasks.length===1?"":"s"}`]),
   ]));
+
+  // Read-only indicator
+  if (State.cfg.readOnly) {
+    tb.appendChild(el("span", { class: "readonly-pill" }, ["Read-Only"]));
+  }
+
+  if (isMobile()) {
+    // ---- MOBILE TOOLBAR ----
+    tb.appendChild(el("div", { class: "spacer" }));
+
+    // Filter toggle
+    tb.appendChild(el("button", {
+      class: "btn ghost", onclick: toggleFilterBar, title: "Filters",
+    }, ["\u2630 Filter"]));
+
+    // View toggle (Cards / Gantt)
+    const viewLabel = showCards ? "Gantt" : "Cards";
+    tb.appendChild(el("button", {
+      class: "btn ghost", onclick: toggleMobileView,
+    }, [viewLabel]));
+
+    // Overflow hamburger
+    tb.appendChild(el("button", {
+      class: "btn ghost", onclick: toggleOverflowMenu, title: "More",
+    }, ["\u22EE"]));
+
+    renderOverflowMenu();
+    return;
+  }
+
+  // ---- DESKTOP TOOLBAR (unchanged) ----
   tb.appendChild(el("div", { class: "spacer" }));
+
+  // Undo / Redo
+  const undoBtn = el("button", {
+    class: "btn ghost", onclick: undo,
+    title: "Undo (Ctrl+Z)",
+  }, [`Undo${State.undoStack.length ? " (" + State.undoStack.length + ")" : ""}`]);
+  if (!State.undoStack.length) undoBtn.disabled = true;
+  tb.appendChild(undoBtn);
+
+  const redoBtn = el("button", {
+    class: "btn ghost", onclick: redo,
+    title: "Redo (Ctrl+Y)",
+  }, [`Redo${State.redoStack.length ? " (" + State.redoStack.length + ")" : ""}`]);
+  if (!State.redoStack.length) redoBtn.disabled = true;
+  tb.appendChild(redoBtn);
+
+  // Expand / Collapse All (only when hierarchy is configured)
+  if (State.cfg.fidParentTask) {
+    tb.appendChild(el("button", {
+      class: "btn ghost", onclick: expandAll, title: "Expand all groups",
+    }, ["Expand"]));
+    tb.appendChild(el("button", {
+      class: "btn ghost", onclick: collapseAll, title: "Collapse all groups",
+    }, ["Collapse"]));
+  }
+
+  // Manual save buttons (only when autosave is off)
+  if (!State.cfg.autoSave) {
+    const pc = State.pendingChanges.length;
+    const saveBtn = el("button", {
+      class: "btn primary", onclick: saveAllPending,
+    }, ["Save"]);
+    if (pc) saveBtn.appendChild(el("span", { class: "badge" }, [String(pc)]));
+    if (!pc) saveBtn.disabled = true;
+    tb.appendChild(saveBtn);
+
+    const discardBtn = el("button", {
+      class: "btn danger", onclick: discardAllPending,
+    }, ["Discard"]);
+    if (!pc) discardBtn.disabled = true;
+    tb.appendChild(discardBtn);
+  }
 
   // Zoom segmented control
   const seg = el("div", { class: "seg" });
@@ -1009,6 +1561,14 @@ function renderToolbar() {
     seg.appendChild(b);
   });
   tb.appendChild(seg);
+
+  // Previous / Next navigation
+  tb.appendChild(el("button", {
+    class: "btn ghost", onclick: () => shiftWindow(-1), title: "Scroll left"
+  }, ["\u25C0"]));
+  tb.appendChild(el("button", {
+    class: "btn ghost", onclick: () => shiftWindow(1), title: "Scroll right"
+  }, ["\u25B6"]));
 
   tb.appendChild(el("button", {
     class: "btn ghost", onclick: scrollToToday
@@ -1036,14 +1596,121 @@ function renderToolbar() {
   }, ["Validate"]));
 
   tb.appendChild(el("button", {
+    class: "btn ghost", onclick: exportCSV, title: "Export CSV"
+  }, ["CSV"]));
+
+  tb.appendChild(el("button", {
+    class: "btn ghost", onclick: exportXLS, title: "Export Excel"
+  }, ["Excel"]));
+
+  tb.appendChild(el("button", {
+    class: "btn ghost", onclick: toggleFullscreen, title: "Toggle fullscreen (F11)"
+  }, [document.fullscreenElement ? "Exit Fullscreen" : "Fullscreen"]));
+
+  if (!State.cfg.readOnly) {
+    tb.appendChild(el("button", {
+      class: "btn", onclick: createTask, title: "Create new task (Insert)"
+    }, ["+ Task"]));
+  }
+
+  tb.appendChild(el("button", {
     class: "btn primary", onclick: () => loadTasks().catch(showError)
   }, ["Refresh"]));
 }
 
-function renderFilterBar() {
+function renderOverflowMenu() {
+  const panel = document.getElementById("overflow-panel");
+  if (!panel) return;
+  panel.innerHTML = "";
+
+  function item(label, action) {
+    const btn = el("button", { class: "overflow-item", onclick: () => { toggleOverflowMenu(); action(); }}, [label]);
+    panel.appendChild(btn);
+  }
+  function sep() { panel.appendChild(el("div", { class: "overflow-sep" })); }
+  function lbl(text) { panel.appendChild(el("div", { class: "overflow-label" }, [text])); }
+
+  lbl("Actions");
+  item("Refresh", () => loadTasks().catch(showError));
+  if (State.undoStack.length) item("Undo (" + State.undoStack.length + ")", undo);
+  if (State.redoStack.length) item("Redo (" + State.redoStack.length + ")", redo);
+  if (!State.cfg.autoSave && State.pendingChanges.length) {
+    item("Save (" + State.pendingChanges.length + ")", saveAllPending);
+    item("Discard changes", discardAllPending);
+  }
+  sep();
+
+  lbl("Navigation");
+  item("Today", scrollToToday);
+  item("Fit to tasks", fitToTasks);
+  item("\u25C0 Previous", () => shiftWindow(-1));
+  item("\u25B6 Next", () => shiftWindow(1));
+  sep();
+
+  lbl("View");
+  item("Validate schedule", validateSchedule);
+  item("Export CSV", exportCSV);
+  item("Export Excel", exportXLS);
+  if (State.cfg.fidParentTask) {
+    item("Expand all", expandAll);
+    item("Collapse all", collapseAll);
+  }
+  item(document.fullscreenElement ? "Exit fullscreen" : "Fullscreen", toggleFullscreen);
+  sep();
+
+  lbl("Zoom");
+  const seg = el("div", { class: "seg", style: { margin: "4px 16px" }});
+  ["day","week","month","quarter","all"].forEach(k => {
+    seg.appendChild(el("button", {
+      class: State.zoom === k ? "active" : "",
+      onclick: () => { toggleOverflowMenu(); setZoom(k); },
+    }, [k === "all" ? "All" : k.charAt(0).toUpperCase()+k.slice(1)]));
+  });
+  panel.appendChild(seg);
+  sep();
+
+  lbl("Group By");
+  const groupSel = el("select", {
+    class: "btn", style: { margin: "4px 16px", width: "calc(100% - 32px)" },
+    onchange: e => { toggleOverflowMenu(); State.groupBy = e.target.value; State.groups = {}; computeVisible(); render(); }
+  });
+  ["none","status","group","assigned"].forEach(k => {
+    const opt = el("option", { value: k }, [k === "none" ? "No group" : "Group: " + k]);
+    if (State.groupBy === k) opt.selected = true;
+    groupSel.appendChild(opt);
+  });
+  panel.appendChild(groupSel);
+}
+
+function toggleOverflowMenu() {
+  const panel = document.getElementById("overflow-panel");
+  const backdrop = document.getElementById("overflow-backdrop");
+  if (!panel || !backdrop) return;
+  const opening = !panel.classList.contains("open");
+  panel.classList.toggle("open");
+  backdrop.classList.toggle("open");
+  if (opening) {
+    backdrop.onclick = toggleOverflowMenu;
+  }
+}
+
+function toggleFilterBar() {
+  const fb = document.getElementById("filterbar");
+  if (fb) fb.classList.toggle("expanded");
+}
+
+function toggleMobileView() {
+  const current = detectMobileView();
+  State.mobileView = current ? "gantt" : "cards";
+  render();
+}
+
+function renderFilterBar(showCards = false) {
   const fb = document.getElementById("filterbar");
   if (!fb) return;
   fb.innerHTML = "";
+  // On mobile, start collapsed (CSS hides via max-height:0; toggle adds .expanded)
+  if (isMobile() && !fb.classList.contains("expanded")) fb.classList.remove("expanded");
 
   const search = el("input", {
     type: "text", class: "search", placeholder: "Search tasks...",
@@ -1122,6 +1789,15 @@ function renderFilterBar() {
     fb.appendChild(cascLbl);
   }
 
+  // Labels toggle
+  const lblLbl = el("label", { style: { fontSize: "12px", display: "flex", alignItems: "center", gap: "4px", color: "var(--text-2)" }});
+  const lblChk = el("input", { type: "checkbox" });
+  if (State.showLabels) lblChk.checked = true;
+  lblChk.addEventListener("change", e => { State.showLabels = e.target.checked; render(); });
+  lblLbl.appendChild(lblChk);
+  lblLbl.appendChild(document.createTextNode(" Labels"));
+  fb.appendChild(lblLbl);
+
   // Color legend on the right side of the filterbar
   const legend = el("div", { class: "legend" });
   const legendItems = [
@@ -1178,12 +1854,13 @@ function renderList() {
   lb.innerHTML = "";
   if (!State.visible.length) {
     lb.appendChild(el("div", { class: "empty" }, [
-      el("div", { class: "ico" }, ["📋"]),
+      el("div", { class: "ico" }, ["\uD83D\uDCCB"]),
       el("div", {}, ["No tasks to show."]),
       el("div", { style: { fontSize: "12px", color: "var(--text-3)" }}, ["Adjust filters or check field mapping."]),
     ]));
     return;
   }
+  const canReorder = State.cfg.fidSortOrder && !State.cfg.readOnly && State.groupBy === "none";
   State.visible.forEach((item, idx) => {
     if (item.type === "group") {
       const collapsed = State.groups[item.key];
@@ -1192,7 +1869,7 @@ function renderList() {
         onclick: () => toggleGroup(item.key)
       }, [
         el("div", { class: "gh" }, [
-          el("span", { class: "chev" }, ["▼"]),
+          el("span", { class: "chev" }, ["\u25BC"]),
           item.key,
           el("span", { style: { color: "var(--text-3)", fontWeight: "400", marginLeft: "6px" }}, [`(${item.count})`]),
         ]),
@@ -1203,20 +1880,201 @@ function renderList() {
       const sel = State.selectedRid === t.rid ? " selected" : "";
       const row = el("div", {
         class: "list-row" + sel,
+        "data-rid": t.rid,
         onclick: () => selectTask(t.rid),
         ondblclick: () => openQuickEdit(t.rid),
-      }, [
-        el("div", { class: "rid", title: `Record #${t.rid}` }, [String(t.rid)]),
-        el("div", { class: "nm", title: t.name }, [t.name]),
-        el("div", { class: "dt", title: `${fmtUS(t.start)} → ${fmtUS(t.end)}` }, [
-          el("div", {}, [fmtUS(t.start)]),
-          el("div", {}, [fmtUS(t.end)]),
-        ]),
-        el("div", { class: "st", title: t.status || "" }, [t.status || ""]),
-      ]);
+        oncontextmenu: e => showContextMenu(e, t),
+      });
+
+      // Apply column order to row grid
+      row.style.gridTemplateColumns = buildColumnCSS(State.columnOrder);
+
+      // Build cells in column order
+      const cellBuilders = {
+        id: () => {
+          const ridCell = el("div", { class: "rid", title: `Record #${t.rid}` });
+          if (canReorder) {
+            const grip = el("span", { class: "drag-grip", title: "Drag to reorder" }, ["\u2630"]);
+            ridCell.appendChild(grip);
+            ridCell.appendChild(document.createTextNode(" " + t.rid));
+            row.draggable = true;
+            attachRowDrag(row, t, idx);
+          } else {
+            ridCell.textContent = String(t.rid);
+          }
+          return ridCell;
+        },
+        name: () => {
+          const nameCell = el("div", { class: "nm", title: t.name });
+          if (State.cfg.fidParentTask && t.depth > 0) {
+            nameCell.style.paddingLeft = (t.depth * 20) + "px";
+          }
+          if (t.isParent) {
+            const chevron = el("button", {
+              class: "chevron-btn" + (State.collapsedTasks[t.rid] ? " collapsed" : ""),
+              onclick: e => { e.stopPropagation(); toggleTaskCollapse(t.rid); },
+            }, ["\u25BC"]);
+            nameCell.appendChild(chevron);
+            nameCell.appendChild(document.createTextNode(" " + t.name));
+          } else {
+            nameCell.textContent = t.name;
+          }
+          nameCell.addEventListener("dblclick", e => {
+            e.stopPropagation();
+            if (State.cfg.readOnly) return;
+            startInlineEdit(nameCell, t, "name");
+          });
+          return nameCell;
+        },
+        dates: () => {
+          return el("div", { class: "dt", title: `${fmtUS(t.start)} \u2192 ${fmtUS(t.end)}` }, [
+            el("div", {}, [fmtUS(t.start)]),
+            el("div", {}, [fmtUS(t.end)]),
+          ]);
+        },
+        status: () => {
+          const statusCell = el("div", { class: "st", title: t.status || "" }, [t.status || ""]);
+          statusCell.addEventListener("dblclick", e => {
+            e.stopPropagation();
+            if (State.cfg.readOnly || !State.cfg.fidStatus) return;
+            startInlineEdit(statusCell, t, "status");
+          });
+          return statusCell;
+        },
+      };
+
+      State.columnOrder.forEach(colId => {
+        const builder = cellBuilders[colId];
+        if (builder) row.appendChild(builder());
+      });
+
       lb.appendChild(row);
     }
   });
+}
+
+/* ============================================================
+   INLINE CELL EDITING
+   ============================================================ */
+function startInlineEdit(cell, task, field) {
+  const { cfg } = State;
+  let input;
+
+  if (field === "name") {
+    input = el("input", { type: "text", class: "inline-input", value: task.name });
+    const finish = (save) => {
+      if (save && input.value !== task.name) {
+        const oldName = task.name;
+        task.name = input.value;
+        saveFieldValue(task, cfg.fidName, input.value, "Name");
+      }
+      render();
+    };
+    input.addEventListener("keydown", e => {
+      if (e.key === "Enter") { e.preventDefault(); finish(true); }
+      if (e.key === "Escape") { e.preventDefault(); finish(false); }
+    });
+    input.addEventListener("blur", () => finish(true));
+  } else if (field === "status") {
+    const statuses = [...new Set(State.tasks.map(x => x.status).filter(Boolean))];
+    input = el("select", { class: "inline-input" });
+    input.appendChild(el("option", { value: "" }, [""]));
+    statuses.forEach(s => {
+      const o = el("option", { value: s }, [s]);
+      if (s === task.status) o.selected = true;
+      input.appendChild(o);
+    });
+    const finish = (save) => {
+      if (save && input.value !== task.status) {
+        task.status = input.value;
+        saveFieldValue(task, cfg.fidStatus, input.value, "Status");
+      }
+      render();
+    };
+    input.addEventListener("change", () => finish(true));
+    input.addEventListener("keydown", e => {
+      if (e.key === "Escape") { e.preventDefault(); finish(false); }
+    });
+    input.addEventListener("blur", () => finish(true));
+  }
+
+  if (input) {
+    cell.textContent = "";
+    cell.appendChild(input);
+    input.focus();
+    if (input.select) input.select();
+  }
+}
+
+/* ============================================================
+   DRAG TO REORDER
+   ============================================================ */
+let _dragRid = null;
+function attachRowDrag(row, task, idx) {
+  row.addEventListener("dragstart", e => {
+    _dragRid = task.rid;
+    e.dataTransfer.effectAllowed = "move";
+    row.style.opacity = "0.5";
+  });
+  row.addEventListener("dragend", () => {
+    _dragRid = null;
+    row.style.opacity = "";
+    document.querySelectorAll(".list-row.drag-over").forEach(r => r.classList.remove("drag-over"));
+  });
+  row.addEventListener("dragover", e => {
+    e.preventDefault();
+    e.dataTransfer.dropEffect = "move";
+    row.classList.add("drag-over");
+  });
+  row.addEventListener("dragleave", () => {
+    row.classList.remove("drag-over");
+  });
+  row.addEventListener("drop", e => {
+    e.preventDefault();
+    row.classList.remove("drag-over");
+    if (!_dragRid || _dragRid === task.rid) return;
+    dropRow(_dragRid, task.rid);
+  });
+}
+
+async function dropRow(draggedRid, targetRid) {
+  const { cfg } = State;
+  const list = State.visible.filter(v => v.type === "task").map(v => v.task);
+  const dragIdx = list.findIndex(t => t.rid === draggedRid);
+  const targetIdx = list.findIndex(t => t.rid === targetRid);
+  if (dragIdx < 0 || targetIdx < 0) return;
+
+  // Move dragged item to target position
+  const [moved] = list.splice(dragIdx, 1);
+  list.splice(targetIdx, 0, moved);
+
+  // Assign new sort orders with gaps of 10
+  const updates = [];
+  list.forEach((t, i) => {
+    const newOrder = (i + 1) * 10;
+    if (t.sortOrder !== newOrder) {
+      t.sortOrder = newOrder;
+      updates.push({ [3]: { value: t.rid }, [cfg.fidSortOrder]: { value: newOrder } });
+    }
+  });
+
+  computeVisible();
+  render();
+
+  if (updates.length && cfg.autoSave) {
+    try {
+      await updateRecords(cfg.taskDbid, updates, [3]);
+      toast("Reordered", "success");
+    } catch (err) {
+      toast("Reorder save failed: " + err.message, "error");
+    }
+  } else if (updates.length) {
+    updates.forEach(u => {
+      const rid = u[3].value;
+      queueChange(rid, cfg.fidSortOrder, 0, u[cfg.fidSortOrder].value);
+    });
+    toast("Reorder queued", "info");
+  }
 }
 
 function renderTimeline() {
@@ -1272,6 +2130,138 @@ function renderTimeline() {
     scroll.scrollTop = State._scrollTop;
     if (listBody) listBody.scrollTop = State._scrollTop;
   }
+}
+
+/* ============================================================
+   MOBILE CARDS VIEW
+   ============================================================ */
+function isCompleteStatus(s) {
+  if (!s) return false;
+  const lc = s.toLowerCase();
+  return lc === "complete" || lc === "completed" || lc === "done" || lc === "closed";
+}
+function isInProgressStatus(s) {
+  if (!s) return false;
+  const lc = s.toLowerCase();
+  if (isCompleteStatus(s)) return false;
+  if (lc === "not started" || lc === "pending" || lc === "planning" || lc === "new" || lc === "") return false;
+  return true;
+}
+
+function renderMobileCards() {
+  const container = document.getElementById("mobile-cards");
+  if (!container) return;
+  container.innerHTML = "";
+  container.style.display = "flex";
+
+  const today = new Date(); today.setHours(0,0,0,0);
+  const weekOut = addDays(today, 7);
+
+  const buckets = {
+    overdue:   { label: "Overdue",       color: "var(--danger)",  dot: "#ef4444", items: [] },
+    dueWeek:   { label: "Due This Week", color: "var(--warning)", dot: "#f59e0b", items: [] },
+    inProgress:{ label: "In Progress",   color: "var(--accent)",  dot: "#3b82f6", items: [] },
+    upcoming:  { label: "Upcoming",      color: "var(--info)",    dot: "#6366f1", items: [] },
+    complete:  { label: "Complete",      color: "var(--success)", dot: "#10b981", items: [] },
+  };
+
+  for (const t of State.filtered) {
+    if (!t.start || !t.end) { buckets.upcoming.items.push(t); continue; }
+    const done = t.percent >= 100 || isCompleteStatus(t.status);
+    if (done) { buckets.complete.items.push(t); continue; }
+    const endDate = new Date(t.end); endDate.setHours(0,0,0,0);
+    if (endDate < today) { buckets.overdue.items.push(t); continue; }
+    if (endDate <= weekOut) { buckets.dueWeek.items.push(t); continue; }
+    if (isInProgressStatus(t.status)) { buckets.inProgress.items.push(t); continue; }
+    buckets.upcoming.items.push(t);
+  }
+
+  // Sort each bucket
+  buckets.overdue.items.sort((a,b) => a.end - b.end);
+  buckets.dueWeek.items.sort((a,b) => a.end - b.end);
+  buckets.inProgress.items.sort((a,b) => a.end - b.end);
+  buckets.upcoming.items.sort((a,b) => a.start - b.start);
+  buckets.complete.items.sort((a,b) => b.end - a.end);
+
+  for (const [key, bucket] of Object.entries(buckets)) {
+    if (!bucket.items.length) continue;
+    // Section header
+    const header = el("div", { class: "mobile-section-header" }, [
+      el("span", { class: "dot", style: { background: bucket.dot }}),
+      bucket.label,
+      el("span", { class: "count" }, [String(bucket.items.length)]),
+    ]);
+    container.appendChild(header);
+
+    for (const t of bucket.items) {
+      container.appendChild(buildMobileCard(t, key));
+    }
+  }
+
+  if (!State.filtered.length) {
+    container.appendChild(el("div", {
+      style: { padding: "40px 16px", textAlign: "center", color: "var(--text-3)" }
+    }, ["No tasks to display"]));
+  }
+}
+
+function buildMobileCard(t, bucketKey) {
+  const card = el("div", { class: "mobile-card", onclick: () => openQuickEdit(t.rid) });
+
+  // Top row: name + status badge
+  const statusColor = isCompleteStatus(t.status) ? "var(--success)"
+    : bucketKey === "overdue" ? "var(--danger)"
+    : bucketKey === "dueWeek" ? "var(--warning)"
+    : isInProgressStatus(t.status) ? "var(--accent)" : "var(--text-3)";
+  const badgeBg = isCompleteStatus(t.status) ? "#ecfdf5"
+    : bucketKey === "overdue" ? "#fef2f2"
+    : bucketKey === "dueWeek" ? "#fffbeb"
+    : isInProgressStatus(t.status) ? "#eff6ff" : "var(--surface-2)";
+
+  const top = el("div", { class: "card-top" }, [
+    el("span", { class: "card-name" }, [t.name]),
+  ]);
+  if (t.status) {
+    top.appendChild(el("span", {
+      class: "status-badge",
+      style: { color: statusColor, background: badgeBg },
+    }, [t.status]));
+  }
+  card.appendChild(top);
+
+  // Meta row: dates, assignee, milestone
+  const meta = el("div", { class: "card-meta" });
+  if (t.start && t.end) {
+    meta.appendChild(el("span", { class: "meta-item" }, [
+      fmtUS(t.start) + " \u2192 " + fmtUS(t.end),
+    ]));
+  }
+  if (t.assigned) {
+    meta.appendChild(el("span", { class: "meta-item" }, [t.assigned]));
+  }
+  if (t.isMilestone) {
+    meta.appendChild(el("span", { class: "meta-item", style: { color: "var(--info)" }}, ["\u25C6 Milestone"]));
+  }
+  card.appendChild(meta);
+
+  // Progress bar
+  if (t.percent > 0 || t.start) {
+    const barColor = bucketKey === "overdue" ? "var(--danger)"
+      : bucketKey === "complete" ? "var(--success)" : "var(--accent)";
+    const bar = el("div", { class: "card-progress" }, [
+      el("div", { class: "card-progress-fill", style: { width: t.percent + "%", background: barColor }}),
+    ]);
+    card.appendChild(bar);
+  }
+
+  return card;
+}
+
+function removeMobileCards() {
+  const container = document.getElementById("mobile-cards");
+  if (container) { container.innerHTML = ""; container.style.display = "none"; }
+  const fab = document.getElementById("mobile-fab");
+  if (fab) fab.style.display = "none";
 }
 
 function renderTicks(host, w) {
@@ -1348,18 +2338,36 @@ function renderRows(host, w) {
     return;
   }
 
-  // Weekend shading (only for day zoom)
-  if (State.zoom === "day") {
+  // Weekend shading (day/week zoom)
+  if (State.zoom === "day" || State.zoom === "week") {
     let cursor = startOfWeek(State.chartStart);
     while (cursor <= State.chartEnd) {
-      const sat = addDays(cursor, 6);
-      const x1 = dateToX(sat);
-      const x2 = x1 + 2 * State.ppd;
-      host.appendChild(el("div", {
-        class: "row-grid weekend",
-        style: { left: x1 + "px", width: (x2 - x1) + "px" },
-      }));
+      if (State.zoom === "day") {
+        const sat = addDays(cursor, 6);
+        const x1 = dateToX(sat);
+        const x2 = x1 + 2 * State.ppd;
+        host.appendChild(el("div", {
+          class: "row-grid weekend",
+          style: { left: x1 + "px", width: (x2 - x1) + "px" },
+        }));
+      }
       cursor = addDays(cursor, 7);
+    }
+  }
+
+  // Holiday shading
+  if (State.cfg.holidays && State.zoom === "day") {
+    const holidays = parseHolidays(State.cfg.holidays);
+    let cursor = new Date(State.chartStart);
+    while (cursor <= State.chartEnd) {
+      if (isHoliday(cursor) && !isWeekend(cursor)) {
+        const x = dateToX(cursor);
+        host.appendChild(el("div", {
+          class: "row-grid holiday",
+          style: { left: x + "px", width: State.ppd + "px" },
+        }));
+      }
+      cursor = addDays(cursor, 1);
     }
   }
 
@@ -1367,10 +2375,6 @@ function renderRows(host, w) {
   const criticalRids = computeCriticalPath();
 
   // Rows stack in natural document flow inside timeline-inner.
-  // Setting `top` on a position:relative element shifts from natural
-  // position, causing 2x cumulative drift — so we don't set it.
-  // The bar inside each row IS position:absolute (only left/width set),
-  // which is correct.
   State.visible.forEach((item, idx) => {
     if (item.type === "group") {
       const row = el("div", {
@@ -1405,8 +2409,6 @@ function renderRows(host, w) {
       if (t.percent >= 100) return "complete";
       if (isLate) return "late";
       const s = (t.status || "").toLowerCase().trim();
-      // Check "not started" / explicit empty FIRST so the "started" substring
-      // in "Not Started" doesn't accidentally match an "in-progress" branch.
       if (!s || s === "not started" || s.includes("not start") || s.includes("pending") || s === "planning") return "not-started";
       if (s.includes("complete") || s.includes("done") || s === "closed") return "complete";
       if (s.includes("block") || s.includes("hold") || s.includes("cancel")) return "blocked";
@@ -1419,40 +2421,385 @@ function renderRows(host, w) {
       dateToX(addDays(t.end, 1)) - x);
 
     const critClass = criticalRids.has(t.rid) ? " critical" : "";
+    const isSummary = t.isParent && State.cfg.fidParentTask;
+
     const bar = el("div", {
-      class: "bar " + statusClass + (t.isMilestone ? " milestone" : "") + critClass,
+      class: "bar " + statusClass + (t.isMilestone ? " milestone" : "") + (isSummary ? " summary" : "") + critClass,
       style: { left: x + "px", width: barWidth + "px" },
-      title: `${t.name}\n${fmtUS(t.start)} → ${fmtUS(t.end)}\n${t.status} | ${t.percent}%`,
+      title: `${t.name}\n${fmtUS(t.start)} \u2192 ${fmtUS(t.end)}\n${t.status} | ${t.percent}%`,
       "data-rid": t.rid,
       onclick: e => { e.stopPropagation(); selectTask(t.rid); },
       ondblclick: () => openQuickEdit(t.rid),
+      oncontextmenu: e => showContextMenu(e, t),
     });
 
-    if (t.percent > 0 && t.percent < 100 && !t.isMilestone) {
-      bar.appendChild(el("div", {
+    // Percent fill
+    if (t.percent > 0 && t.percent < 100 && !t.isMilestone && !isSummary) {
+      const pctFill = el("div", {
         class: "pct-fill",
         style: { width: t.percent + "%" },
-      }));
+      });
+      bar.appendChild(pctFill);
+
+      // Progress drag handle
+      if (State.cfg.fidPercent && !State.cfg.readOnly) {
+        const pctHandle = el("div", {
+          class: "pct-handle",
+          style: { left: t.percent + "%" },
+        });
+        attachProgressDrag(pctHandle, bar, t);
+        bar.appendChild(pctHandle);
+      }
     }
 
-    if (!t.isMilestone) {
+    // Label (conditional on showLabels)
+    if (!t.isMilestone && !isSummary && State.showLabels) {
       bar.appendChild(el("div", { class: "lbl" }, [t.name]));
     }
 
-    if (State.cfg.allowResize && !t.isMilestone) {
+    // Resize handles (not on summary or milestone, not in read-only)
+    if (State.cfg.allowResize && !t.isMilestone && !isSummary && !State.cfg.readOnly) {
       bar.appendChild(el("div", { class: "handle left", "data-handle": "left" }));
       bar.appendChild(el("div", { class: "handle right", "data-handle": "right" }));
     }
 
+    // Dependency connector circle (for drag-to-create deps)
+    if (State.cfg.depDbid && !State.cfg.readOnly && !isSummary) {
+      const conn = el("div", { class: "connector", title: "Drag to create dependency" });
+      attachDepDraw(conn, t);
+      bar.appendChild(conn);
+    }
+
     row.appendChild(bar);
 
-    if (State.cfg.allowDrag) attachBarDrag(bar, t);
+    // Drag enabled for non-summary, non-read-only
+    if (State.cfg.allowDrag && !isSummary && !State.cfg.readOnly) {
+      attachBarDrag(bar, t);
+    }
 
     host.appendChild(row);
   });
 
   // Padding to allow scrolling
   host.style.minHeight = (State.visible.length * DEFAULTS.rowHeight + 40) + "px";
+}
+
+/* ============================================================
+   PROGRESS DRAG
+   ============================================================ */
+function attachProgressDrag(handle, bar, task) {
+  handle.addEventListener("pointerdown", e => {
+    e.stopPropagation();
+    e.preventDefault();
+    handle.setPointerCapture(e.pointerId);
+    const barRect = bar.getBoundingClientRect();
+    const barW = barRect.width;
+
+    const onMove = ev => {
+      const localX = ev.clientX - barRect.left;
+      const pct = Math.max(0, Math.min(100, Math.round((localX / barW) * 100)));
+      handle.style.left = pct + "%";
+      const fill = bar.querySelector(".pct-fill");
+      if (fill) fill.style.width = pct + "%";
+    };
+    const onUp = ev => {
+      handle.removeEventListener("pointermove", onMove);
+      handle.removeEventListener("pointerup", onUp);
+      const localX = ev.clientX - barRect.left;
+      const pct = Math.max(0, Math.min(100, Math.round((localX / barW) * 100)));
+      const oldPct = task.percent;
+      task.percent = pct;
+
+      const { cfg } = State;
+      if (!cfg.autoSave) {
+        queueChange(task.rid, cfg.fidPercent, oldPct, pct);
+        pushUndo({
+          type: "percent", desc: `Progress ${task.name} to ${pct}%`,
+          undo() { task.percent = oldPct; },
+          redo() { task.percent = pct; },
+        });
+        toast(`${task.name}: ${pct}%`, "info");
+      } else {
+        pushUndo({
+          type: "percent", desc: `Progress ${task.name} to ${pct}%`,
+          undo() { task.percent = oldPct; },
+          redo() { task.percent = pct; },
+        });
+        updateRecords(cfg.taskDbid, [{ [3]: { value: task.rid }, [cfg.fidPercent]: { value: pct } }], [3])
+          .then(() => toast(`${task.name}: ${pct}%`, "success"))
+          .catch(err => toast("Save failed: " + err.message, "error"));
+      }
+      render();
+    };
+    handle.addEventListener("pointermove", onMove);
+    handle.addEventListener("pointerup", onUp);
+  });
+}
+
+/* ============================================================
+   DEPENDENCY DRAWING
+   ============================================================ */
+function attachDepDraw(connector, predTask) {
+  connector.addEventListener("pointerdown", e => {
+    e.stopPropagation();
+    e.preventDefault();
+    connector.setPointerCapture(e.pointerId);
+
+    const inner = document.getElementById("timeline-inner");
+    const scroll = document.getElementById("timeline-scroll");
+    if (!inner || !scroll) return;
+    const ns = "http://www.w3.org/2000/svg";
+
+    const svg = document.createElementNS(ns, "svg");
+    svg.setAttribute("class", "dep-svg");
+    svg.style.width = inner.style.width;
+    svg.style.height = inner.style.minHeight || "100%";
+    svg.setAttribute("width", parseInt(inner.style.width) || 2000);
+    svg.setAttribute("height", parseInt(inner.style.minHeight) || 2000);
+    svg.style.pointerEvents = "none";
+
+    const line = document.createElementNS(ns, "line");
+    line.setAttribute("class", "dep-draw-line");
+    const rect = connector.getBoundingClientRect();
+    const scrollRect = scroll.getBoundingClientRect();
+    const startX = rect.right - scrollRect.left + scroll.scrollLeft;
+    const startY = rect.top + rect.height / 2 - scrollRect.top + scroll.scrollTop;
+    line.setAttribute("x1", startX);
+    line.setAttribute("y1", startY);
+    line.setAttribute("x2", startX);
+    line.setAttribute("y2", startY);
+    svg.appendChild(line);
+    inner.appendChild(svg);
+
+    const onMove = ev => {
+      const mx = ev.clientX - scrollRect.left + scroll.scrollLeft;
+      const my = ev.clientY - scrollRect.top + scroll.scrollTop;
+      line.setAttribute("x2", mx);
+      line.setAttribute("y2", my);
+    };
+    const onUp = ev => {
+      connector.removeEventListener("pointermove", onMove);
+      connector.removeEventListener("pointerup", onUp);
+      svg.remove();
+      // Find target bar
+      const target = document.elementFromPoint(ev.clientX, ev.clientY);
+      const targetBar = target ? target.closest(".bar[data-rid]") : null;
+      if (targetBar) {
+        const succRid = Number(targetBar.dataset.rid);
+        if (succRid && succRid !== predTask.rid) {
+          createDependency(predTask.rid, succRid, "FS", 0);
+        }
+      }
+    };
+    connector.addEventListener("pointermove", onMove);
+    connector.addEventListener("pointerup", onUp);
+  });
+}
+
+async function createDependency(predRid, succRid, type, lag) {
+  const { cfg } = State;
+  if (!cfg.depDbid) return;
+
+  // Check if dependency already exists
+  const exists = State.dependencies.some(d => d.pred === predRid && d.succ === succRid);
+  if (exists) { toast("Dependency already exists", "error"); return; }
+
+  const row = {
+    [cfg.fidDepPred]: { value: predRid },
+    [cfg.fidDepSucc]: { value: succRid },
+  };
+  if (cfg.fidDepType) row[cfg.fidDepType] = { value: type };
+  if (cfg.fidDepLag) row[cfg.fidDepLag] = { value: lag };
+  if (cfg.fidDepProject && cfg.projectRid) row[cfg.fidDepProject] = { value: Number(cfg.projectRid) };
+
+  try {
+    const result = await qbFetch("/records", {
+      method: "POST",
+      body: JSON.stringify({ to: cfg.depDbid, data: [row] }),
+    }, cfg.depDbid);
+    const newRid = result.metadata ? result.metadata.createdRecordIds?.[0] : 0;
+    State.dependencies.push({ rid: newRid, pred: predRid, succ: succRid, type, lag });
+    pushUndo({
+      type: "dep", desc: "Create dependency",
+      undo() { State.dependencies = State.dependencies.filter(d => d.rid !== newRid); },
+      redo() { State.dependencies.push({ rid: newRid, pred: predRid, succ: succRid, type, lag }); },
+    });
+    toast("Dependency created", "success");
+    render();
+    // Refresh quick edit panel if open for either task
+    if (State.selectedRid === predRid || State.selectedRid === succRid) openQuickEdit(State.selectedRid);
+  } catch (err) {
+    toast("Failed to create dependency: " + err.message, "error");
+  }
+}
+
+async function deleteDependency(depRid) {
+  const { cfg } = State;
+  if (!cfg.depDbid || !depRid) return;
+  const dep = State.dependencies.find(d => d.rid === depRid);
+  if (!dep) return;
+  try {
+    await qbFetch("/records", {
+      method: "DELETE",
+      body: JSON.stringify({ from: cfg.depDbid, where: `{3.EX.${depRid}}` }),
+    }, cfg.depDbid);
+    State.dependencies = State.dependencies.filter(d => d.rid !== depRid);
+    pushUndo({
+      type: "dep", desc: "Delete dependency",
+      undo() { State.dependencies.push(dep); },
+      redo() { State.dependencies = State.dependencies.filter(d => d.rid !== depRid); },
+    });
+    toast("Dependency removed", "success");
+    render();
+    if (State.selectedRid) openQuickEdit(State.selectedRid);
+  } catch (err) {
+    toast("Failed to delete dependency: " + err.message, "error");
+  }
+}
+
+/* ============================================================
+   CREATE / DELETE TASKS
+   ============================================================ */
+async function deleteTask(rid) {
+  if (!rid) return;
+  const { cfg } = State;
+  const t = State.tasks.find(x => x.rid === rid);
+  if (!t) return;
+  if (!confirm("Delete task \"" + t.name + "\"? This cannot be undone in Quickbase.")) return;
+  try {
+    setStatus("Deleting...", "info");
+    await qbFetch("/records", {
+      method: "DELETE",
+      body: JSON.stringify({ from: cfg.taskDbid, where: `{3.EX.${rid}}` }),
+    }, cfg.taskDbid);
+    // Also delete any dependencies referencing this task
+    const relatedDeps = State.dependencies.filter(d => d.pred === rid || d.succ === rid);
+    for (const dep of relatedDeps) {
+      try {
+        await qbFetch("/records", {
+          method: "DELETE",
+          body: JSON.stringify({ from: cfg.depDbid, where: `{3.EX.${dep.rid}}` }),
+        }, cfg.depDbid);
+      } catch { /* best effort */ }
+    }
+    const savedTask = { ...t, raw: { ...t.raw } };
+    const savedDeps = [...relatedDeps];
+    State.tasks = State.tasks.filter(x => x.rid !== rid);
+    State.dependencies = State.dependencies.filter(d => d.pred !== rid && d.succ !== rid);
+    pushUndo({
+      type: "task", desc: "Delete task: " + savedTask.name,
+      undo() {
+        State.tasks.push(savedTask);
+        savedDeps.forEach(d => State.dependencies.push(d));
+      },
+      redo() {
+        State.tasks = State.tasks.filter(x => x.rid !== rid);
+        State.dependencies = State.dependencies.filter(d => d.pred !== rid && d.succ !== rid);
+      },
+    });
+    closeQuickEdit();
+    computeChartWindow();
+    applyFilters();
+    toast("Task deleted", "success");
+  } catch (err) {
+    toast("Delete failed: " + err.message, "error");
+  }
+}
+
+async function createTask() {
+  const { cfg } = State;
+  if (cfg.readOnly || !cfg.taskDbid) return;
+  const name = prompt("New task name:");
+  if (!name || !name.trim()) return;
+  const today = new Date(); today.setHours(0,0,0,0);
+  const endDate = addWorkingDays(today, 5);
+  const row = {};
+  if (cfg.fidName) row[cfg.fidName] = { value: name.trim() };
+  const startSaveFid = cfg.fidStartSave || cfg.fidStart;
+  if (startSaveFid) row[startSaveFid] = { value: fmtISO(today) };
+  if (cfg.fidEnd) row[cfg.fidEnd] = { value: fmtISO(endDate) };
+  if (cfg.fidStatus) row[cfg.fidStatus] = { value: "Not Started" };
+  if (cfg.fidProject && cfg.projectRid) row[cfg.fidProject] = { value: Number(cfg.projectRid) };
+  try {
+    setStatus("Creating task...", "info");
+    const result = await qbFetch("/records", {
+      method: "POST",
+      body: JSON.stringify({ to: cfg.taskDbid, data: [row] }),
+    }, cfg.taskDbid);
+    const newRid = result.metadata ? result.metadata.createdRecordIds?.[0] : 0;
+    if (!newRid) { toast("Task created but no record ID returned", "error"); return; }
+    const newTask = {
+      rid: newRid,
+      name: name.trim(),
+      status: "Not Started",
+      percent: 0,
+      group: "",
+      assigned: "",
+      priority: "",
+      start: today,
+      end: endDate,
+      isMilestone: false,
+      baselineStart: null,
+      baselineEnd: null,
+      parentRid: 0,
+      sortOrder: 0,
+      wbs: "",
+      duration: 5,
+      depth: 0,
+      isParent: false,
+      raw: {},
+    };
+    State.tasks.push(newTask);
+    pushUndo({
+      type: "task", desc: "Create task: " + name.trim(),
+      undo() { State.tasks = State.tasks.filter(x => x.rid !== newRid); },
+      redo() { State.tasks.push(newTask); },
+    });
+    computeChartWindow();
+    applyFilters();
+    toast("Task created", "success");
+    openQuickEdit(newRid);
+  } catch (err) {
+    toast("Create failed: " + err.message, "error");
+  }
+}
+
+/* ============================================================
+   CONTEXT MENU
+   ============================================================ */
+function dismissContextMenu() {
+  const old = document.querySelector(".ctx-menu");
+  if (old) old.remove();
+}
+
+function showContextMenu(e, task) {
+  e.preventDefault();
+  e.stopPropagation();
+  dismissContextMenu();
+
+  const menu = el("div", { class: "ctx-menu" });
+  menu.appendChild(el("button", { class: "ctx-item", onclick: () => { dismissContextMenu(); openQuickEdit(task.rid); }}, ["Edit"]));
+
+  if (!State.cfg.readOnly) {
+    menu.appendChild(el("div", { class: "ctx-sep" }));
+    menu.appendChild(el("button", { class: "ctx-item", onclick: () => { dismissContextMenu(); createTask(); }}, ["New Task"]));
+    menu.appendChild(el("div", { class: "ctx-sep" }));
+    menu.appendChild(el("button", { class: "ctx-item danger", onclick: () => { dismissContextMenu(); deleteTask(task.rid); }}, ["Delete Task"]));
+  }
+
+  // Position, clamped to viewport
+  let x = e.clientX, y = e.clientY;
+  menu.style.left = x + "px";
+  menu.style.top = y + "px";
+  document.body.appendChild(menu);
+  const rect = menu.getBoundingClientRect();
+  if (rect.right > window.innerWidth) menu.style.left = (window.innerWidth - rect.width - 4) + "px";
+  if (rect.bottom > window.innerHeight) menu.style.top = (window.innerHeight - rect.height - 4) + "px";
+
+  const dismiss = (ev) => {
+    if (!menu.contains(ev.target)) { dismissContextMenu(); document.removeEventListener("pointerdown", dismiss, true); }
+  };
+  setTimeout(() => document.addEventListener("pointerdown", dismiss, true), 0);
 }
 
 /* ============================================================
@@ -1502,13 +2849,27 @@ function renderDependencies(host, w) {
 
     const y1 = pi * rh + rh/2;
     const y2 = si * rh + rh/2;
-    const x1 = dateToX(addDays(pred.end, 1));
-    const x2 = dateToX(succ.start);
+    const type = (dep.type || "FS").toUpperCase();
 
-    // Detect violation
-    const violated = succ.start < addDays(pred.end, 1 + (dep.lag || 0));
+    // Connection points per type
+    let x1, x2;
+    if (type === "SS") {
+      x1 = dateToX(pred.start);
+      x2 = dateToX(succ.start);
+    } else if (type === "FF") {
+      x1 = dateToX(addDays(pred.end, 1));
+      x2 = dateToX(addDays(succ.end, 1));
+    } else if (type === "SF") {
+      x1 = dateToX(pred.start);
+      x2 = dateToX(addDays(succ.end, 1));
+    } else {
+      // FS (default)
+      x1 = dateToX(addDays(pred.end, 1));
+      x2 = dateToX(succ.start);
+    }
 
-    const midX = Math.max(x1 + 8, Math.min(x2 - 8, (x1 + x2)/2));
+    const violated = checkDepViolation(dep, pred, succ);
+    const midX = Math.max(x1 + 8, Math.min(x2 - 8, (x1 + x2) / 2));
     const pe = document.createElementNS(ns, "path");
     pe.setAttribute("class", "dep-line" + (violated ? " violation" : ""));
     pe.setAttribute("d", `M ${x1} ${y1} L ${midX} ${y1} L ${midX} ${y2} L ${x2} ${y2}`);
@@ -1517,6 +2878,16 @@ function renderDependencies(host, w) {
   });
 
   host.appendChild(svg);
+}
+
+function checkDepViolation(dep, pred, succ) {
+  const type = (dep.type || "FS").toUpperCase();
+  const lag = dep.lag || 0;
+  if (type === "FS") return succ.start < addDays(pred.end, 1 + lag);
+  if (type === "SS") return succ.start < addDays(pred.start, lag);
+  if (type === "FF") return succ.end < addDays(pred.end, lag);
+  if (type === "SF") return succ.end < addDays(pred.start, lag);
+  return false;
 }
 
 function computeCriticalPath() {
@@ -1574,10 +2945,13 @@ function attachBarDrag(bar, task) {
                  : mode === "resize-end"   ? "End"
                  : "Move";
     const sign = dayShift > 0 ? "+" : "";
+    const wdInfo = State.cfg.skipWeekends
+      ? ` (${diffWorkingDays(newStart, newEnd) + 1} work days)`
+      : "";
     tooltip.innerHTML = `
       <div class="name">${escapeHtml(task.name)}</div>
-      <div class="dates">${fmtUS(newStart)}<span class="arrow">→</span>${fmtUS(newEnd)}</div>
-      <div class="meta">${action} • ${sign}${dayShift} day${Math.abs(dayShift)===1?"":"s"}</div>
+      <div class="dates">${fmtUS(newStart)}<span class="arrow">\u2192</span>${fmtUS(newEnd)}</div>
+      <div class="meta">${action} \u2022 ${sign}${dayShift} day${Math.abs(dayShift)===1?"":"s"}${wdInfo}</div>
     `;
     tooltip.style.left = (e.clientX + 16) + "px";
     tooltip.style.top  = (e.clientY + 16) + "px";
@@ -1586,8 +2960,9 @@ function attachBarDrag(bar, task) {
     if (tooltip) { tooltip.remove(); tooltip = null; }
   }
 
+  let _dragging = false;
+
   bar.addEventListener("pointerdown", e => {
-    e.preventDefault();
     const handle = e.target.closest(".handle");
     if (handle) {
       mode = handle.dataset.handle === "left" ? "resize-start" : "resize-end";
@@ -1598,13 +2973,19 @@ function attachBarDrag(bar, task) {
     origLeft = parseFloat(bar.style.left) || 0;
     origWidth = parseFloat(bar.style.width) || 0;
     dayShift = 0;
-    bar.classList.add("dragging");
-    bar.setPointerCapture(e.pointerId);
-    showTooltip(e);
+    _dragging = false;
   });
 
   bar.addEventListener("pointermove", e => {
     if (!mode) return;
+    // Only commit to drag after a few pixels of movement
+    if (!_dragging) {
+      if (Math.abs(e.clientX - startX) < 3) return;
+      _dragging = true;
+      bar.setPointerCapture(e.pointerId);
+      bar.classList.add("dragging");
+      showTooltip(e);
+    }
     const dx = e.clientX - startX;
     dayShift = Math.round(dx / State.ppd);
     if (mode === "move") {
@@ -1628,7 +3009,8 @@ function attachBarDrag(bar, task) {
     hideTooltip();
     const action = mode;
     mode = null;
-    if (dayShift === 0) { render(); return; }
+    _dragging = false;
+    if (dayShift === 0) return;
     try {
       if (action === "move") {
         await moveTask(task, dayShift);
@@ -1683,17 +3065,33 @@ async function resizeTaskEnd(task, dayShift) {
 
 async function saveTaskDates(task, newStart, newEnd) {
   const { cfg } = State;
+  if (cfg.readOnly) { toast("Read-only mode", "error"); render(); return; }
 
-  // Match the reference code pattern: save to startsavefid (the editable field)
-  // only. Update local state optimistically. No server reload.
-  // This avoids the formula-recalc-timing trap where reloading right after
-  // save pulls a stale display-start value and snaps the bar back.
+  const oldStart = new Date(task.start);
+  const oldEnd = new Date(task.end);
   const startSaveFid = cfg.fidStartSave || cfg.fidStart;
   const row = {
     [3]: { value: task.rid },
     [startSaveFid]: { value: fmtISO(newStart) },
   };
   if (cfg.fidEnd) row[cfg.fidEnd] = { value: fmtISO(newEnd) };
+
+  // Manual save mode: queue instead of calling API
+  if (!cfg.autoSave) {
+    task.start = newStart;
+    task.end = newEnd;
+    queueChange(task.rid, startSaveFid, fmtISO(oldStart), fmtISO(newStart));
+    if (cfg.fidEnd) queueChange(task.rid, cfg.fidEnd, fmtISO(oldEnd), fmtISO(newEnd));
+    pushUndo({
+      type: "dates", desc: `Move ${task.name}`,
+      undo() { task.start = oldStart; task.end = oldEnd; },
+      redo() { task.start = newStart; task.end = newEnd; },
+    });
+    computeChartWindow();
+    applyFilters();
+    toast(`Queued ${task.name}`, "info");
+    return;
+  }
 
   setStatus(`Saving ${task.name}...`, "info");
 
@@ -1704,8 +3102,12 @@ async function saveTaskDates(task, newStart, newEnd) {
       [3, cfg.fidStart, cfg.fidEnd, cfg.fidStartSave].filter(x => x)
     );
 
-    // Optimistic local update. The server has accepted the write; the UI
-    // should reflect that immediately. Next page load will re-pull from server.
+    pushUndo({
+      type: "dates", desc: `Move ${task.name}`,
+      undo() { task.start = oldStart; task.end = oldEnd; },
+      redo() { task.start = newStart; task.end = newEnd; },
+    });
+
     task.start = newStart;
     task.end = newEnd;
     computeChartWindow();
@@ -1717,7 +3119,6 @@ async function saveTaskDates(task, newStart, newEnd) {
     console.error("Save failed:", err);
     toast("Save failed: " + err.message, "error");
     setStatus("Save failed", "err");
-    // Re-render to reset the bar position visually
     render();
     throw err;
   }
@@ -1742,6 +3143,113 @@ async function cascadeForward(rootTask, dayShift) {
   }
   await walk(rootTask.rid);
   return count;
+}
+
+/* ============================================================
+   UNDO / REDO
+   ============================================================ */
+function pushUndo(entry) {
+  State.undoStack.push(entry);
+  if (State.undoStack.length > 50) State.undoStack.shift();
+  State.redoStack = [];
+}
+
+function undo() {
+  const entry = State.undoStack.pop();
+  if (!entry) return;
+  entry.undo();
+  State.redoStack.push(entry);
+  computeChartWindow();
+  applyFilters();
+  toast("Undo: " + entry.desc);
+}
+
+function redo() {
+  const entry = State.redoStack.pop();
+  if (!entry) return;
+  entry.redo();
+  State.undoStack.push(entry);
+  computeChartWindow();
+  applyFilters();
+  toast("Redo: " + entry.desc);
+}
+
+/* ============================================================
+   MANUAL SAVE (PENDING CHANGES)
+   ============================================================ */
+function queueChange(rid, fid, oldVal, newVal) {
+  const key = `${rid}_${fid}`;
+  const existing = State.pendingChanges.find(c => `${c.rid}_${c.fid}` === key);
+  if (existing) {
+    existing.newVal = newVal;
+  } else {
+    State.pendingChanges.push({ rid, fid, oldVal, newVal });
+  }
+}
+
+async function saveAllPending() {
+  if (!State.pendingChanges.length) return;
+  const { cfg } = State;
+  const byRid = {};
+  State.pendingChanges.forEach(c => {
+    if (!byRid[c.rid]) byRid[c.rid] = { [3]: { value: c.rid } };
+    byRid[c.rid][c.fid] = { value: c.newVal };
+  });
+  try {
+    setStatus("Saving all pending changes...", "info");
+    await updateRecords(cfg.taskDbid, Object.values(byRid), [3]);
+    const count = State.pendingChanges.length;
+    State.pendingChanges = [];
+    toast(`Saved ${count} change${count === 1 ? "" : "s"}`, "success");
+    setStatus("All changes saved", "ok");
+    render();
+  } catch (err) {
+    toast("Batch save failed: " + err.message, "error");
+    setStatus("Save failed", "err");
+  }
+}
+
+function discardAllPending() {
+  if (!State.pendingChanges.length) return;
+  State.pendingChanges = [];
+  State.undoStack = [];
+  State.redoStack = [];
+  loadTasks().catch(showError);
+}
+
+/* ============================================================
+   SAVE FIELD VALUE (single-field save helper)
+   ============================================================ */
+async function saveFieldValue(task, fid, value, fieldLabel) {
+  const { cfg } = State;
+  if (cfg.readOnly) { toast("Read-only mode", "error"); return; }
+  if (!fid) return;
+
+  const oldVal = task.raw[fid] ? task.raw[fid].value : "";
+  const row = { [3]: { value: task.rid }, [fid]: { value } };
+
+  if (!cfg.autoSave) {
+    queueChange(task.rid, fid, oldVal, value);
+    pushUndo({
+      type: "field", desc: `Edit ${fieldLabel} on ${task.name}`,
+      undo() { if (task.raw[fid]) task.raw[fid].value = oldVal; },
+      redo() { if (task.raw[fid]) task.raw[fid].value = value; },
+    });
+    toast(`Queued ${fieldLabel}`, "info");
+    return;
+  }
+
+  try {
+    await updateRecords(cfg.taskDbid, [row], [3]);
+    pushUndo({
+      type: "field", desc: `Edit ${fieldLabel} on ${task.name}`,
+      undo() { if (task.raw[fid]) task.raw[fid].value = oldVal; },
+      redo() { if (task.raw[fid]) task.raw[fid].value = value; },
+    });
+    toast(`Saved ${fieldLabel}`, "success");
+  } catch (err) {
+    toast("Save failed: " + err.message, "error");
+  }
 }
 
 /* ============================================================
@@ -1800,6 +3308,128 @@ function toggleGroup(key) {
   render();
 }
 
+function shiftWindow(dir) {
+  const scroll = document.getElementById("timeline-scroll");
+  if (!scroll) return;
+  const shiftMap = { day: 7, week: 30, month: 90, quarter: 180, all: 90 };
+  const days = (shiftMap[State.zoom] || 30) * dir;
+  scroll.scrollLeft += days * State.ppd;
+  State._scrollLeft = scroll.scrollLeft;
+}
+
+/* ============================================================
+   CSV EXPORT
+   ============================================================ */
+function exportCSV() {
+  const headers = ["Record ID","Name","Start","End","Status","% Complete","Assigned","Group"];
+  const rows = State.filtered.map(t => [
+    t.rid,
+    `"${(t.name || "").replace(/"/g, '""')}"`,
+    fmtISO(t.start),
+    fmtISO(t.end),
+    `"${(t.status || "").replace(/"/g, '""')}"`,
+    t.percent,
+    `"${(t.assigned || "").replace(/"/g, '""')}"`,
+    `"${(t.group || "").replace(/"/g, '""')}"`,
+  ]);
+  const csv = [headers.join(","), ...rows.map(r => r.join(","))].join("\n");
+  const blob = new Blob([csv], { type: "text/csv" });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement("a");
+  a.href = url;
+  a.download = `gantt-export-${fmtISO(new Date())}.csv`;
+  a.click();
+  URL.revokeObjectURL(url);
+  toast("CSV exported", "success");
+}
+
+function exportXLS() {
+  const esc = s => String(s || "").replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;").replace(/"/g,"&quot;");
+  const headers = ["Record ID","Name","Start","End","Status","% Complete","Assigned","Group"];
+  let rows = "";
+  // Header row
+  rows += "<Row>" + headers.map(h => `<Cell><Data ss:Type="String">${esc(h)}</Data></Cell>`).join("") + "</Row>\n";
+  // Data rows
+  State.filtered.forEach(t => {
+    rows += "<Row>";
+    rows += `<Cell><Data ss:Type="Number">${t.rid}</Data></Cell>`;
+    rows += `<Cell><Data ss:Type="String">${esc(t.name)}</Data></Cell>`;
+    rows += `<Cell><Data ss:Type="String">${fmtISO(t.start)}</Data></Cell>`;
+    rows += `<Cell><Data ss:Type="String">${fmtISO(t.end)}</Data></Cell>`;
+    rows += `<Cell><Data ss:Type="String">${esc(t.status)}</Data></Cell>`;
+    rows += `<Cell><Data ss:Type="Number">${t.percent}</Data></Cell>`;
+    rows += `<Cell><Data ss:Type="String">${esc(t.assigned)}</Data></Cell>`;
+    rows += `<Cell><Data ss:Type="String">${esc(t.group)}</Data></Cell>`;
+    rows += "</Row>\n";
+  });
+  const xml = `<?xml version="1.0" encoding="UTF-8"?>
+<?mso-application progid="Excel.Sheet"?>
+<Workbook xmlns="urn:schemas-microsoft-com:office:spreadsheet"
+ xmlns:ss="urn:schemas-microsoft-com:office:spreadsheet">
+<Worksheet ss:Name="Gantt Export">
+<Table>${rows}</Table>
+</Worksheet>
+</Workbook>`;
+  const blob = new Blob([xml], { type: "application/vnd.ms-excel" });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement("a");
+  a.href = url;
+  a.download = `gantt-export-${fmtISO(new Date())}.xls`;
+  a.click();
+  URL.revokeObjectURL(url);
+  toast("Excel exported", "success");
+}
+
+function toggleFullscreen() {
+  if (document.fullscreenElement) {
+    document.exitFullscreen();
+  } else {
+    document.documentElement.requestFullscreen().catch(() => {});
+  }
+}
+document.addEventListener("fullscreenchange", () => { renderToolbar(); });
+
+/* ============================================================
+   SETTINGS PERSISTENCE (localStorage)
+   ============================================================ */
+function getSettingsKey() {
+  const { cfg } = State;
+  return `qb-gantt-${cfg.taskDbid}-${cfg.projectRid || "all"}`;
+}
+
+function loadPersistedSettings() {
+  try {
+    const key = getSettingsKey();
+    const raw = localStorage.getItem(key);
+    if (!raw) return;
+    const s = JSON.parse(raw);
+    if (s.zoom && ZOOM_LEVELS[s.zoom]) { State.zoom = s.zoom; State.ppd = ZOOM_LEVELS[s.zoom].ppd; }
+    if (s.groupBy) State.groupBy = s.groupBy;
+    if (s.showBaselines !== undefined) State.showBaselines = s.showBaselines;
+    if (s.showDeps !== undefined) State.showDeps = s.showDeps;
+    if (s.showLabels !== undefined) State.showLabels = s.showLabels;
+    if (s.collapsedTasks) State.collapsedTasks = s.collapsedTasks;
+    if (Array.isArray(s.columnOrder) && s.columnOrder.length === 4) State.columnOrder = s.columnOrder;
+    if (s.mobileView) State.mobileView = s.mobileView;
+  } catch { /* ignore */ }
+}
+
+function persistSettings() {
+  try {
+    const key = getSettingsKey();
+    localStorage.setItem(key, JSON.stringify({
+      zoom: State.zoom,
+      groupBy: State.groupBy,
+      showBaselines: State.showBaselines,
+      showDeps: State.showDeps,
+      showLabels: State.showLabels,
+      collapsedTasks: State.collapsedTasks,
+      columnOrder: State.columnOrder,
+      mobileView: State.mobileView,
+    }));
+  } catch { /* ignore */ }
+}
+
 /* ============================================================
    QUICK EDIT PANEL
    ============================================================ */
@@ -1847,16 +3477,115 @@ function openQuickEdit(rid) {
     ].filter(Boolean)),
   ]));
 
-  const foot = el("div", { class: "pf" }, [
-    el("button", { class: "btn", onclick: () => { window.open(buildRecordUrl(t.rid), "_blank"); }}, ["Open Record"]),
-    el("button", { class: "btn ghost", onclick: closeQuickEdit }, ["Cancel"]),
-    el("button", { class: "btn primary", onclick: () => saveQuickEdit(t) }, ["Save"]),
-  ]);
+  // Dependencies section
+  if (State.cfg.depDbid && !State.cfg.readOnly) {
+    const depSec = el("div", { class: "dep-section" });
+    depSec.appendChild(el("h4", {}, ["Dependencies"]));
+
+    // Find deps where this task is successor (predecessors of this task)
+    const preds = State.dependencies.filter(d => d.succ === t.rid);
+    // Find deps where this task is predecessor (successors of this task)
+    const succs = State.dependencies.filter(d => d.pred === t.rid);
+
+    if (preds.length) {
+      depSec.appendChild(el("label", { style: { fontSize: "11px", color: "var(--text-3)", fontWeight: "600", display: "block", marginBottom: "4px" }}, ["Predecessors"]));
+      preds.forEach(d => {
+        const predTask = State.tasks.find(x => x.rid === d.pred);
+        const item = el("div", { class: "dep-item" }, [
+          el("span", { class: "dep-type" }, [d.type || "FS"]),
+          el("span", { class: "dep-name", title: predTask ? predTask.name : `RID ${d.pred}` }, [predTask ? predTask.name : `RID ${d.pred}`]),
+          d.lag ? el("span", { class: "dep-lag" }, [`+${d.lag}d`]) : null,
+          el("button", { class: "dep-del", title: "Remove", onclick: () => deleteDependency(d.rid) }, ["\u00d7"]),
+        ].filter(Boolean));
+        depSec.appendChild(item);
+      });
+    }
+
+    if (succs.length) {
+      depSec.appendChild(el("label", { style: { fontSize: "11px", color: "var(--text-3)", fontWeight: "600", display: "block", marginBottom: "4px", marginTop: preds.length ? "8px" : "0" }}, ["Successors"]));
+      succs.forEach(d => {
+        const succTask = State.tasks.find(x => x.rid === d.succ);
+        const item = el("div", { class: "dep-item" }, [
+          el("span", { class: "dep-type" }, [d.type || "FS"]),
+          el("span", { class: "dep-name", title: succTask ? succTask.name : `RID ${d.succ}` }, [succTask ? succTask.name : `RID ${d.succ}`]),
+          d.lag ? el("span", { class: "dep-lag" }, [`+${d.lag}d`]) : null,
+          el("button", { class: "dep-del", title: "Remove", onclick: () => deleteDependency(d.rid) }, ["\u00d7"]),
+        ].filter(Boolean));
+        depSec.appendChild(item);
+      });
+    }
+
+    if (!preds.length && !succs.length) {
+      depSec.appendChild(el("div", { style: { fontSize: "12px", color: "var(--text-3)", marginBottom: "8px" }}, ["No dependencies yet"]));
+    }
+
+    // Add new dependency form
+    const otherTasks = State.tasks.filter(x => x.rid !== t.rid).sort((a, b) => a.name.localeCompare(b.name));
+    const addLabel = el("label", { style: { fontSize: "11px", color: "var(--text-3)", fontWeight: "600", display: "block", marginTop: "12px", marginBottom: "4px" }}, ["Add Dependency"]);
+    depSec.appendChild(addLabel);
+
+    const taskSelect = el("select");
+    taskSelect.appendChild(el("option", { value: "" }, ["Select task..."]));
+    otherTasks.forEach(ot => {
+      taskSelect.appendChild(el("option", { value: String(ot.rid) }, [`${ot.name} (#${ot.rid})`]));
+    });
+
+    const typeSelect = el("select");
+    ["FS", "SS", "FF", "SF"].forEach(tp => {
+      typeSelect.appendChild(el("option", { value: tp }, [tp]));
+    });
+
+    const lagInput = el("input", { type: "number", value: "0", min: "0", placeholder: "Lag", title: "Lag (days)" });
+
+    const dirSelect = el("select");
+    dirSelect.appendChild(el("option", { value: "pred" }, ["is predecessor"]));
+    dirSelect.appendChild(el("option", { value: "succ" }, ["is successor"]));
+
+    const addBtn = el("button", { class: "btn primary", onclick: () => {
+      const otherRid = Number(taskSelect.value);
+      if (!otherRid) { toast("Select a task first", "error"); return; }
+      const type = typeSelect.value;
+      const lag = Number(lagInput.value) || 0;
+      if (dirSelect.value === "pred") {
+        createDependency(otherRid, t.rid, type, lag);
+      } else {
+        createDependency(t.rid, otherRid, type, lag);
+      }
+    }}, ["Add"]);
+
+    const addRow = el("div", { style: { display: "flex", flexDirection: "column", gap: "6px" }});
+    const topRow = el("div", { style: { display: "flex", gap: "6px" }}, [taskSelect, dirSelect]);
+    const bottomRow = el("div", { style: { display: "flex", gap: "6px", alignItems: "center" }}, [
+      el("span", { style: { fontSize: "12px", color: "var(--text-2)" }}, ["Type:"]),
+      typeSelect,
+      el("span", { style: { fontSize: "12px", color: "var(--text-2)" }}, ["Lag:"]),
+      lagInput,
+      addBtn,
+    ]);
+    taskSelect.style.flex = "1";
+    taskSelect.style.minWidth = "0";
+    addRow.appendChild(topRow);
+    addRow.appendChild(bottomRow);
+    depSec.appendChild(addRow);
+
+    body.appendChild(depSec);
+  }
+
+  const footChildren = [];
+  if (!State.cfg.readOnly) {
+    footChildren.push(el("button", { class: "btn danger", onclick: () => deleteTask(t.rid) }, ["Delete"]));
+  }
+  footChildren.push(el("button", { class: "btn", onclick: () => { window.open(buildRecordUrl(t.rid), "_blank"); }}, ["Open Record"]));
+  footChildren.push(el("div", { style: { flex: "1" }}));
+  footChildren.push(el("button", { class: "btn ghost", onclick: closeQuickEdit }, ["Cancel"]));
+  footChildren.push(el("button", { class: "btn primary", onclick: () => saveQuickEdit(t) }, ["Save"]));
+  const foot = el("div", { class: "pf" }, footChildren);
 
   sp.appendChild(head);
   sp.appendChild(body);
   sp.appendChild(foot);
   sp.classList.add("open");
+  if (isMobile()) document.body.style.overflow = "hidden";
 }
 
 function renderField(label, type, value, onChange, options = []) {
@@ -1888,6 +3617,7 @@ function closeQuickEdit() {
   const sp = document.getElementById("side-panel");
   sp.classList.remove("open");
   State.selectedRid = null;
+  document.body.style.overflow = "";
   render();
 }
 
@@ -1950,9 +3680,9 @@ function validateSchedule() {
     const p = State.tasks.find(t => t.rid === d.pred);
     const s = State.tasks.find(t => t.rid === d.succ);
     if (!p || !s) return;
-    const requiredStart = addDays(p.end, 1 + (d.lag || 0));
-    if (s.start < requiredStart) {
-      issues.push({ rid: s.rid, sev: "error", msg: `${s.name} starts before ${p.name} finishes (+${d.lag||0} lag)`, name: s.name });
+    if (checkDepViolation(d, p, s)) {
+      const type = (d.type || "FS").toUpperCase();
+      issues.push({ rid: s.rid, sev: "error", msg: `${s.name}: ${type} dependency on ${p.name} violated (+${d.lag||0} lag)`, name: s.name });
     }
   });
 
@@ -2163,6 +3893,10 @@ function autoMap(fields) {
     fidProject: pickFirst(fields, [/project.*record\s*id/i, /related\s*project/i, /^project$/i, /project.*id/i]),
     fidBaselineStart: pickFirst(dateFields, [/baseline.*start/i, /planned.*start/i, /original.*start/i]),
     fidBaselineEnd: pickFirst(dateFields, [/baseline.*end/i, /planned.*end/i, /original.*end/i, /baseline.*finish/i]),
+    fidParentTask: pickFirst(fields, [/parent.*task/i, /parent.*rid/i, /parent.*record/i]),
+    fidSortOrder: pickFirst(numericFields, [/sort.*order/i, /^order$/i, /sequence/i]),
+    fidWbs: pickFirst(textFields, [/^wbs$/i, /wbs.*code/i]),
+    fidDuration: pickFirst(numericFields, [/^duration$/i, /duration.*days/i]),
   };
   // remove zeros
   Object.keys(guess).forEach(k => { if (!guess[k]) delete guess[k]; });
@@ -2230,6 +3964,12 @@ function renderWizStep2(body) {
   fieldRow("fidMilestone", "Milestone Flag", "Checkbox; renders as a diamond", false, f => /checkbox/i.test(f.fieldType));
   fieldRow("fidPriority", "Priority", "Display only");
 
+  grid.appendChild(el("div", { class: "group-title" }, ["Hierarchy & ordering"]));
+  fieldRow("fidParentTask", "Parent Task RID", "Enables outline/WBS hierarchy");
+  fieldRow("fidSortOrder", "Sort Order", "Numeric field for manual task ordering", false, f => /numeric/i.test(f.fieldType));
+  fieldRow("fidWbs", "WBS Code", "Text field for WBS numbering");
+  fieldRow("fidDuration", "Duration", "Numeric duration field", false, f => /numeric/i.test(f.fieldType));
+
   grid.appendChild(el("div", { class: "group-title" }, ["Baselines (optional)"]));
   fieldRow("fidBaselineStart", "Baseline Start", "Renders ghost bar under current schedule", false, f => /date|timestamp/i.test(f.fieldType));
   fieldRow("fidBaselineEnd", "Baseline End", "", false, f => /date|timestamp/i.test(f.fieldType));
@@ -2254,7 +3994,8 @@ function renderWizStep2(body) {
 
 function wizCollectMapping() {
   ["fidName","fidStart","fidEnd","fidProject","fidStatus","fidPercent","fidStartSave",
-   "fidAssigned","fidGroup","fidMilestone","fidPriority","fidBaselineStart","fidBaselineEnd"].forEach(k => {
+   "fidAssigned","fidGroup","fidMilestone","fidPriority","fidBaselineStart","fidBaselineEnd",
+   "fidParentTask","fidSortOrder","fidWbs","fidDuration"].forEach(k => {
     const node = document.getElementById("wm-" + k);
     if (node) Wiz.mapping[k] = Number(node.value) || 0;
   });
@@ -2322,6 +4063,7 @@ function renderWizStep3(body) {
     }
     depRow("fidDepPred", "Predecessor task RID");
     depRow("fidDepSucc", "Successor task RID");
+    depRow("fidDepType", "Type (FS/SS/FF/SF)");
     depRow("fidDepLag", "Lag (days)", f => /numeric/i.test(f.fieldType));
     depRow("fidDepProject", "Project RID (filter)");
     dcard.appendChild(grid);
@@ -2340,6 +4082,7 @@ async function wizLoadDepSchema() {
     Wiz.depMapping = {
       fidDepPred: pickFirst(Wiz.depFields, [/predecessor/i, /^pred/i]),
       fidDepSucc: pickFirst(Wiz.depFields, [/successor/i, /^succ/i]),
+      fidDepType: pickFirst(Wiz.depFields, [/type/i]),
       fidDepLag: pickFirst(Wiz.depFields, [/lag/i]),
       fidDepProject: pickFirst(Wiz.depFields, [/project.*record/i, /^project/i]),
     };
@@ -2369,9 +4112,14 @@ function renderWizStep4(body) {
   if (m.fidPriority) params.set("priorityfid", m.fidPriority);
   if (m.fidBaselineStart) params.set("baselinestartfid", m.fidBaselineStart);
   if (m.fidBaselineEnd) params.set("baselineendfid", m.fidBaselineEnd);
+  if (m.fidParentTask) params.set("parentfid", m.fidParentTask);
+  if (m.fidSortOrder) params.set("sortorderfid", m.fidSortOrder);
+  if (m.fidWbs) params.set("wbsfid", m.fidWbs);
+  if (m.fidDuration) params.set("durationfid", m.fidDuration);
   if (Wiz.depDbid) params.set("depdbid", Wiz.depDbid);
   if (dm.fidDepPred) params.set("deppredfid", dm.fidDepPred);
   if (dm.fidDepSucc) params.set("depsuccfid", dm.fidDepSucc);
+  if (dm.fidDepType) params.set("deptypefid", dm.fidDepType);
   if (dm.fidDepLag) params.set("deplagfid", dm.fidDepLag);
   if (dm.fidDepProject) params.set("depprojectfid", dm.fidDepProject);
 
@@ -2471,9 +4219,14 @@ function wizLaunch() {
   if (m.fidPriority) params.set("priorityfid", m.fidPriority);
   if (m.fidBaselineStart) params.set("baselinestartfid", m.fidBaselineStart);
   if (m.fidBaselineEnd) params.set("baselineendfid", m.fidBaselineEnd);
+  if (m.fidParentTask) params.set("parentfid", m.fidParentTask);
+  if (m.fidSortOrder) params.set("sortorderfid", m.fidSortOrder);
+  if (m.fidWbs) params.set("wbsfid", m.fidWbs);
+  if (m.fidDuration) params.set("durationfid", m.fidDuration);
   if (Wiz.depDbid) params.set("depdbid", Wiz.depDbid);
   if (dm.fidDepPred) params.set("deppredfid", dm.fidDepPred);
   if (dm.fidDepSucc) params.set("depsuccfid", dm.fidDepSucc);
+  if (dm.fidDepType) params.set("deptypefid", dm.fidDepType);
   if (dm.fidDepLag) params.set("deplagfid", dm.fidDepLag);
   if (dm.fidDepProject) params.set("depprojectfid", dm.fidDepProject);
   if (rid) params.set("projectrid", rid);
@@ -2493,6 +4246,7 @@ async function boot() {
     showError(new Error("Missing required config. Append &setup=true to run the setup wizard."));
     return;
   }
+  loadPersistedSettings();
   // Initialize chart window so the first render after loadTasks doesn't blow up
   // if the table is empty or loadTasks errors.
   State.chartStart = addDays(new Date(), -30);
@@ -2510,15 +4264,22 @@ async function boot() {
 // keyboard shortcuts
 document.addEventListener("keydown", e => {
   if (e.target && /input|textarea|select/i.test(e.target.tagName)) return;
+  if (e.ctrlKey && e.key === "z") { e.preventDefault(); undo(); return; }
+  if (e.ctrlKey && e.key === "y") { e.preventDefault(); redo(); return; }
+  if (e.ctrlKey && e.key === "s" && !State.cfg.autoSave) { e.preventDefault(); saveAllPending(); return; }
   if (e.key === "t" || e.key === "T") scrollToToday();
   if (e.key === "f" || e.key === "F") fitToTasks();
-  if (e.key === "Escape") closeQuickEdit();
+  if (e.key === "Escape") { closeQuickEdit(); dismissContextMenu(); }
+  if (e.key === "F11") { e.preventDefault(); toggleFullscreen(); return; }
+  if (e.key === "Insert" && !State.cfg.readOnly) { createTask(); return; }
   if (e.key === "1") setZoom("day");
   if (e.key === "2") setZoom("week");
   if (e.key === "3") setZoom("month");
   if (e.key === "4") setZoom("quarter");
   if (e.key === "5") setZoom("all");
   if (e.key === "v" || e.key === "V") validateSchedule();
+  if (e.key === "ArrowLeft" && !e.ctrlKey) shiftWindow(-1);
+  if (e.key === "ArrowRight" && !e.ctrlKey) shiftWindow(1);
 });
 
 boot();
