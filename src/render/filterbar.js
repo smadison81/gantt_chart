@@ -32,6 +32,19 @@ export function renderFilterBar(showCards = false) {
     fb.appendChild(sel);
   }
 
+  if (State.resources.length) {
+    const resSel = el("select", {
+      onchange: e => { State.filters.resource = e.target.value; applyFilters(); }
+    });
+    resSel.appendChild(el("option", { value: "" }, ["All resources"]));
+    State.resources.slice().sort((a, b) => a.name.localeCompare(b.name)).forEach(r => {
+      const o = el("option", { value: String(r.rid) }, [r.name]);
+      if (String(State.filters.resource) === String(r.rid)) o.selected = true;
+      resSel.appendChild(o);
+    });
+    fb.appendChild(resSel);
+  }
+
   const range = el("select", {
     onchange: e => { State.filters.range = e.target.value; applyFilters(); }
   });

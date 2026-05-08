@@ -73,6 +73,40 @@ async function loadDeps() {
   })).filter(d => d.pred && d.succ);
 }
 
+async function loadResources() {
+  const { cfg } = State;
+  if (!cfg.resourceDbid || !cfg.fidResName) return;
+  const select = [3, cfg.fidResName, cfg.fidResType, cfg.fidResStatus].filter(x => x && x > 0);
+  const result = await queryRecords(cfg.resourceDbid, {
+    select,
+    sortBy: [{ fieldId: cfg.fidResName, order: "ASC" }],
+    options: { top: 1000 },
+  });
+  State.resources = (result.data || []).map(r => ({
+    rid: Number(fv(r, 3)),
+    name: String(fv(r, cfg.fidResName) || ""),
+    type: String(fv(r, cfg.fidResType) || ""),
+    status: String(fv(r, cfg.fidResStatus) || ""),
+  })).filter(r => r.rid && r.name);
+}
+
+async function loadAllocations() {
+  const { cfg } = State;
+  if (!cfg.allocDbid || !cfg.fidAllocTask || !cfg.fidAllocResource) return;
+  const select = [3, cfg.fidAllocProject, cfg.fidAllocTask, cfg.fidAllocResource, cfg.fidAllocStart, cfg.fidAllocEnd].filter(x => x && x > 0);
+  const where = (cfg.fidAllocProject && cfg.projectRid)
+    ? `{${cfg.fidAllocProject}.EX.${cfg.projectRid}}` : undefined;
+  const result = await queryRecords(cfg.allocDbid, { select, where, options: { top: 5000 } });
+  State.allocations = (result.data || []).map(r => ({
+    rid: Number(fv(r, 3)),
+    projectRid: Number(fv(r, cfg.fidAllocProject) || 0),
+    taskRid: Number(fv(r, cfg.fidAllocTask) || 0),
+    resourceRid: Number(fv(r, cfg.fidAllocResource) || 0),
+    start: parseDate(fv(r, cfg.fidAllocStart)),
+    end: parseDate(fv(r, cfg.fidAllocEnd)),
+  })).filter(a => a.rid && a.taskRid && a.resourceRid);
+}
+
 export async function loadTasks() {
   const { cfg } = State;
   setStatus("Loading tasks...", "info");
@@ -111,6 +145,16 @@ export async function loadTasks() {
   if (cfg.depDbid && cfg.fidDepPred && cfg.fidDepSucc) {
     try { await loadDeps(); }
     catch (e) { console.warn("Deps load failed:", e); }
+  }
+
+  if (cfg.resourceDbid) {
+    try { await loadResources(); }
+    catch (e) { console.warn("Resources load failed:", e); }
+  }
+
+  if (cfg.allocDbid) {
+    try { await loadAllocations(); }
+    catch (e) { console.warn("Allocations load failed:", e); }
   }
 
   computeChartWindow();

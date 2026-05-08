@@ -22,6 +22,13 @@ export function applyFilters() {
   if (f.status) {
     list = list.filter(t => t.status === f.status);
   }
+  if (f.resource) {
+    const want = Number(f.resource);
+    if (want) {
+      const taskRids = new Set(State.allocations.filter(a => a.resourceRid === want).map(a => a.taskRid));
+      list = list.filter(t => taskRids.has(t.rid));
+    }
+  }
   if (!f.showMilestones) {
     list = list.filter(t => !t.isMilestone);
   }

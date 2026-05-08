@@ -26,6 +26,7 @@ import { injectHooks as depDrawInject, setActionRefs as depDrawSetActions } from
 import { injectHooks as actionsInject, setZoom, fitToTasks, scrollToToday, selectTask, shiftWindow, toggleGroup, exportCSV, exportXLS, toggleFullscreen, scrollToTask } from './actions.js';
 import { showContextMenu, dismissContextMenu, setActionRefs as menuSetActions } from './menu.js';
 import { openQuickEdit, closeQuickEdit, injectHooks as quickEditInject, setApplyFiltersRef as quickEditSetApplyFilters } from './quickedit.js';
+import { injectHooks as allocationsInject, setActionRefs as allocationsSetActions } from './allocations.js';
 import { validateSchedule, injectHooks as validateInject } from './validate.js';
 import { showError, setStatus } from './utils/notify.js';
 import { startWizard } from './wizard.js';
@@ -65,6 +66,7 @@ progressInject(render);
 depDrawInject(render);
 quickEditInject(render);
 validateInject(render);
+allocationsInject(render);
 
 // Wire action refs (avoids circular imports for action functions)
 const sharedActionRefs = {
@@ -82,6 +84,7 @@ listSetActions(sharedActionRefs);
 timelineSetActions(sharedActionRefs);
 mobileSetActions({ openQuickEdit });
 depDrawSetActions({ openQuickEdit });
+allocationsSetActions({ openQuickEdit });
 menuSetActions({ openQuickEdit, deleteTask });
 filterbarSetRender(render);
 quickEditSetApplyFilters(applyFilters);

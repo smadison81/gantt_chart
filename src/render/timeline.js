@@ -7,6 +7,7 @@ import { renderDependencies, computeCriticalPath } from './deps.js';
 import { attachBarDrag } from '../interactions/bar-drag.js';
 import { attachProgressDrag } from '../interactions/progress.js';
 import { attachDepDraw } from '../interactions/dep-draw.js';
+import { allocationsForTask, resourceById, initials } from '../allocations.js';
 
 // Set by main.js
 let _selectTask = null;
@@ -247,6 +248,32 @@ function renderRows(host, w) {
       bar.appendChild(el("div", { class: "lbl" }, [t.name]));
     }
 
+    if (State.cfg.allocDbid && !isSummary) {
+      const allocs = allocationsForTask(t.rid);
+      if (allocs.length) {
+        const names = allocs.map(a => {
+          const r = resourceById(a.resourceRid);
+          return r ? r.name : `#${a.resourceRid}`;
+        });
+        const chips = el("div", { class: "res-chips", title: names.join(", ") });
+        const max = 3;
+        const visible = allocs.slice(0, max);
+        visible.forEach((a, i) => {
+          const r = resourceById(a.resourceRid);
+          const nm = r ? r.name : `#${a.resourceRid}`;
+          chips.appendChild(el("span", {
+            class: "res-chip",
+            style: { background: chipColor(a.resourceRid) },
+            title: nm,
+          }, [initials(nm)]));
+        });
+        if (allocs.length > max) {
+          chips.appendChild(el("span", { class: "res-chip overflow" }, [`+${allocs.length - max}`]));
+        }
+        bar.appendChild(chips);
+      }
+    }
+
     if (State.cfg.allowResize && !t.isMilestone && !isSummary && !State.cfg.readOnly) {
       bar.appendChild(el("div", { class: "handle left", "data-handle": "left" }));
       bar.appendChild(el("div", { class: "handle right", "data-handle": "right" }));
@@ -268,4 +295,12 @@ function renderRows(host, w) {
   });
 
   host.style.minHeight = (State.visible.length * DEFAULTS.rowHeight + 40) + "px";
+}
+
+function chipColor(rid) {
+  const palette = [
+    "#0a66c2", "#0e7c66", "#a23a3a", "#7a4eb8", "#b8772a",
+    "#2e7d32", "#ad1457", "#5e35b1", "#00838f", "#6a1b9a",
+  ];
+  return palette[Math.abs(Number(rid) || 0) % palette.length];
 }

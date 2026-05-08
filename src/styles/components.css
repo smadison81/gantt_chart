@@ -203,6 +203,171 @@
 .dep-add input[type=number]{width:50px}
 .dep-add .btn{padding:6px 10px;font-size:12px}
 
+/* ========== QUICK-EDIT DRAWER (cards) ========== */
+.side-panel .ph{padding:14px 16px}
+.side-panel .ph-title{flex:1;min-width:0}
+.side-panel .ph-title h3{margin:0;font-size:15px;line-height:1.3;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.side-panel .ph-sub{font-size:11px;color:var(--text-3);margin-top:2px;letter-spacing:.04em;text-transform:uppercase;font-weight:600}
+.side-panel .pb{padding:14px;background:var(--surface-2)}
+.side-panel .pf{background:var(--surface)}
+
+.qe-card{
+  background:var(--surface);border:1px solid var(--border);
+  border-radius:var(--radius);margin-bottom:10px;overflow:hidden;
+  transition:box-shadow .15s;
+}
+.qe-card.open{box-shadow:0 1px 2px rgba(0,0,0,.04)}
+.qe-card-head{
+  display:flex;align-items:center;gap:8px;width:100%;
+  padding:11px 14px;background:transparent;border:0;cursor:pointer;
+  font:inherit;color:var(--text);text-align:left;
+}
+.qe-card-head:hover{background:var(--surface-2)}
+.qe-card-title{
+  font-size:11px;font-weight:700;color:var(--text-2);
+  letter-spacing:.06em;text-transform:uppercase;
+}
+.qe-card-count{
+  display:inline-block;padding:1px 7px;border-radius:10px;
+  background:var(--accent-soft);color:var(--accent);
+  font-size:11px;font-weight:600;
+}
+.qe-card-spacer{flex:1}
+.qe-card-chev{font-size:11px;color:var(--text-3);width:14px;text-align:center}
+.qe-card.open .qe-card-chev{color:var(--text-2)}
+.qe-card-body{padding:4px 14px 14px;border-top:1px solid var(--border)}
+.qe-card-sub{
+  font-size:11px;color:var(--text-3);
+  margin:8px 0 12px;line-height:1.4;
+}
+
+.qe-row2{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.qe-row2 .fld{margin-bottom:0}
+
+/* Field uniformity */
+.qe-card-body .fld{margin-bottom:14px}
+.qe-card-body .fld:last-child{margin-bottom:0}
+.qe-card-body .fld label{
+  display:flex;align-items:center;justify-content:space-between;
+  font-size:11px;font-weight:600;color:var(--text-2);
+  margin-bottom:5px;letter-spacing:.02em;
+}
+.qe-card-body .fld label .fld-value{
+  color:var(--accent);font-weight:700;font-size:12px;
+}
+.qe-card-body .fld input,
+.qe-card-body .fld select,
+.qe-card-body .fld textarea{
+  width:100%;padding:7px 10px;border:1px solid var(--border);
+  border-radius:var(--radius-sm);background:var(--surface);
+  font-size:13px;color:var(--text);
+}
+.qe-card-body .fld input:focus,
+.qe-card-body .fld select:focus,
+.qe-card-body .fld textarea:focus{
+  outline:0;border-color:var(--accent);box-shadow:0 0 0 3px var(--accent-soft);
+}
+.qe-card-body .fld input:disabled,
+.qe-card-body .fld select:disabled{
+  background:var(--surface-2);color:var(--text-2);cursor:not-allowed;
+}
+.fld-help{
+  font-size:11px;color:var(--text-3);margin-top:5px;line-height:1.4;
+}
+
+/* Progress bar visual */
+.qe-progress{
+  height:6px;background:var(--surface-2);border-radius:3px;
+  overflow:hidden;margin:6px 0;
+}
+.qe-progress-fill{
+  height:100%;background:var(--bar-progress);
+  transition:width .15s;
+}
+
+/* List items inside cards (resources, deps) */
+.qe-listitem{
+  display:flex;align-items:center;gap:10px;
+  padding:8px 10px;background:var(--surface-2);
+  border-radius:var(--radius-sm);margin-bottom:6px;
+  font-size:12px;
+}
+.qe-listitem:last-of-type{margin-bottom:0}
+.qe-listitem-main{flex:1;min-width:0}
+.qe-listitem-name{
+  font-weight:500;color:var(--text);
+  overflow:hidden;text-overflow:ellipsis;white-space:nowrap;
+}
+.qe-listitem-meta{
+  font-size:11px;color:var(--text-3);margin-top:1px;
+}
+.qe-listitem-del{
+  background:none;border:none;color:var(--text-3);
+  cursor:pointer;padding:2px 6px;font-size:15px;line-height:1;
+  border-radius:var(--radius-sm);
+}
+.qe-listitem-del:hover{color:var(--danger);background:#fef2f2}
+.qe-avatar{
+  display:inline-flex;align-items:center;justify-content:center;
+  width:26px;height:26px;border-radius:50%;
+  background:var(--accent);color:#fff;
+  font-size:10px;font-weight:700;letter-spacing:.02em;
+  flex-shrink:0;
+}
+.qe-pill{
+  display:inline-flex;align-items:center;justify-content:center;
+  min-width:30px;padding:2px 6px;border-radius:4px;
+  background:var(--accent-soft);color:var(--accent);
+  font-size:10px;font-weight:700;letter-spacing:.04em;
+}
+.qe-empty{
+  font-size:12px;color:var(--text-3);
+  padding:8px 0;text-align:center;font-style:italic;
+}
+.qe-sublabel{
+  font-size:10px;font-weight:700;color:var(--text-3);
+  letter-spacing:.06em;text-transform:uppercase;
+  margin:6px 0 6px;
+}
+.qe-add-row{display:flex;gap:6px;align-items:center;margin-top:6px}
+.qe-add-row select,.qe-add-row input{
+  flex:1;min-width:0;padding:6px 8px;
+  border:1px solid var(--border);border-radius:var(--radius-sm);
+  background:var(--surface);font-size:12px;
+}
+.qe-add-row input[type=number]{flex:0 0 60px}
+.qe-add-row .btn{padding:6px 12px;font-size:12px;flex:0 0 auto}
+.qe-inline-label{font-size:11px;color:var(--text-3);font-weight:600}
+
+/* Activity metadata rows */
+.qe-meta{
+  display:flex;justify-content:space-between;align-items:center;
+  padding:6px 0;border-bottom:1px dashed var(--border);
+  font-size:12px;
+}
+.qe-meta:last-child{border-bottom:0}
+.qe-meta-k{color:var(--text-3);font-weight:500}
+.qe-meta-v{color:var(--text);font-family:ui-monospace,Consolas,monospace;font-size:11px}
+
+/* ========== RESOURCES (bars only) ========== */
+
+.res-chips{
+  position:absolute;right:6px;top:50%;transform:translateY(-50%);
+  display:flex;align-items:center;pointer-events:none;
+  max-width:50%;overflow:hidden;
+}
+.res-chip{
+  display:inline-flex;align-items:center;justify-content:center;
+  width:20px;height:20px;border-radius:50%;
+  font-size:9px;font-weight:700;color:#fff;
+  background:#0a66c2;border:1.5px solid #fff;
+  margin-left:-6px;letter-spacing:.02em;
+  box-shadow:0 0 0 1px rgba(0,0,0,.05);
+}
+.res-chip:first-child{margin-left:0}
+.res-chip.overflow{background:#64748b;font-size:9px}
+.bar.milestone .res-chips{display:none}
+
 /* ========== CONTEXT MENU ========== */
 .ctx-menu{
   position:fixed;z-index:40;background:var(--surface);

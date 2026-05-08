@@ -7,7 +7,9 @@
     "dev": "vite",
     "build": "vite build",
     "build:single": "vite build --config vite.config.single.js",
-    "preview": "vite preview"
+    "preview": "vite preview",
+    "deploy": "npm run build:single && node scripts/deploy.js",
+    "deploy:env": "npm run build:single && node --env-file=.env scripts/deploy.js"
   },
   "devDependencies": {
     "vite": "^5.4.0",

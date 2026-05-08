@@ -2,3 +2,5 @@ node_modules
 dist
 dist-single
 .claude/
+deploy.config.json
+.env

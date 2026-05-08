@@ -1,0 +1,167 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>QB Field Probe: Resources & Allocations</title>
+<style>
+  body{font:13px/1.4 -apple-system,BlinkMacSystemFont,Segoe UI,Roboto,sans-serif;margin:18px;color:#222;background:#fafafa}
+  h1{font-size:16px;margin:0 0 6px}
+  h2{font-size:14px;margin:18px 0 6px}
+  .muted{color:#777;font-size:12px}
+  .row{display:flex;gap:8px;align-items:center;flex-wrap:wrap;margin:8px 0}
+  input,button{font:inherit;padding:5px 8px;border:1px solid #ccc;border-radius:4px;background:#fff}
+  button{cursor:pointer;background:#0a66c2;color:#fff;border-color:#0a66c2}
+  button:hover{background:#084e96}
+  table{border-collapse:collapse;width:100%;background:#fff;font-size:12px;margin-top:6px}
+  th,td{border:1px solid #e1e1e1;padding:5px 7px;text-align:left;vertical-align:top}
+  th{background:#f1f3f5;font-weight:600;position:sticky;top:0}
+  td.fid{font-family:ui-monospace,Consolas,monospace;text-align:right;width:48px}
+  td.type{font-family:ui-monospace,Consolas,monospace;color:#555;white-space:nowrap}
+  tr.builtin td{color:#999;background:#fafbfc}
+  .pill{display:inline-block;padding:1px 6px;border-radius:10px;font-size:11px;background:#eef;color:#335;margin-right:3px}
+  .pill.ref{background:#fde7c2;color:#7a4a00}
+  .pill.lookup{background:#e0f0e0;color:#2a5a2a}
+  .pill.formula{background:#f4e0f4;color:#6a2a6a}
+  .err{color:#a00;background:#fff0f0;border:1px solid #fcc;padding:8px;border-radius:4px;white-space:pre-wrap}
+  pre{background:#fff;border:1px solid #e1e1e1;padding:8px;border-radius:4px;overflow:auto;max-height:240px;font-size:11px}
+  details{margin-top:6px}
+  summary{cursor:pointer;color:#0a66c2}
+</style>
+</head>
+<body>
+
+<h1>QB Field Probe</h1>
+<div class="muted">Lists FIDs for Resources (<code>bvz9c3txk</code>) and Resource Allocations (<code>bvz9c3t37</code>) in realm <code>cag.quickbase.com</code>.</div>
+
+<div class="row">
+  <label>Realm: <input id="realm" value="cag.quickbase.com" size="22"></label>
+  <label>App Token (optional): <input id="appToken" placeholder="leave blank if not required" size="32"></label>
+  <button id="run">Probe tables</button>
+  <button id="copy" type="button" style="background:#555;border-color:#555">Copy summary</button>
+</div>
+<div class="muted">Must be opened while logged in to Quickbase (uses session cookie for a temp token). Hosting this as a QB code page on app <code>bvz9c3tgj</code> is the most reliable way.</div>
+
+<div id="out"></div>
+
+<script>
+const TABLES = [
+  { dbid: "bvz9c3txk", label: "Resources" },
+  { dbid: "bvz9c3t37", label: "Resource Allocations (child of Tasks)" },
+];
+
+async function getTempToken(dbid, realm, appToken){
+  const headers = { "QB-Realm-Hostname": realm, "Content-Type":"application/json" };
+  if (appToken) headers["QB-App-Token"] = appToken;
+  const res = await fetch(`https://api.quickbase.com/v1/auth/temporary/${dbid}`, {
+    method:"GET", headers, credentials:"include"
+  });
+  if (!res.ok){
+    const t = await res.text();
+    throw new Error(`Auth failed for ${dbid} (${res.status}): ${t.slice(0,300)}`);
+  }
+  const j = await res.json();
+  return j.temporaryAuthorization;
+}
+
+async function fetchFields(dbid, realm, appToken){
+  const token = await getTempToken(dbid, realm, appToken);
+  const headers = {
+    "QB-Realm-Hostname": realm,
+    "Authorization": `QB-TEMP-TOKEN ${token}`,
+    "Content-Type": "application/json"
+  };
+  const res = await fetch(`https://api.quickbase.com/v1/fields?tableId=${dbid}&includeFieldPerms=false`, { headers });
+  if (!res.ok){
+    const t = await res.text();
+    throw new Error(`Fields call failed for ${dbid} (${res.status}): ${t.slice(0,300)}`);
+  }
+  return res.json();
+}
+
+function classify(f){
+  // returns short string of pills describing the field's role
+  const tags = [];
+  if (f.mode === "lookup") tags.push(`<span class="pill lookup">lookup</span>`);
+  if (f.mode === "summary") tags.push(`<span class="pill lookup">summary</span>`);
+  if (f.mode === "virtual" || (f.properties && f.properties.formula)) tags.push(`<span class="pill formula">formula</span>`);
+  if (f.fieldType === "recordid") tags.push(`<span class="pill">recordid</span>`);
+  if (f.properties && f.properties.masterChoiceTableId) tags.push(`<span class="pill ref">ref→${f.properties.masterChoiceTableId}</span>`);
+  if (f.properties && f.properties.masterTableTag) tags.push(`<span class="pill ref">parent</span>`);
+  if (f.required) tags.push(`<span class="pill">req</span>`);
+  if (f.unique) tags.push(`<span class="pill">uniq</span>`);
+  return tags.join(" ");
+}
+
+function renderTable(label, dbid, fields){
+  const rows = fields
+    .slice()
+    .sort((a,b)=>a.id-b.id)
+    .map(f => {
+      const builtin = f.id < 6;
+      return `
+      <tr class="${builtin?'builtin':''}">
+        <td class="fid">${f.id}</td>
+        <td>${escapeHtml(f.label||"")}</td>
+        <td class="type">${escapeHtml(f.fieldType||"")}${f.mode? " ("+escapeHtml(f.mode)+")":""}</td>
+        <td>${classify(f)}</td>
+      </tr>`;
+    }).join("");
+  return `
+    <h2>${escapeHtml(label)} <span class="muted">(${escapeHtml(dbid)}, ${fields.length} fields)</span></h2>
+    <table>
+      <thead><tr><th>FID</th><th>Label</th><th>Type</th><th>Flags</th></tr></thead>
+      <tbody>${rows}</tbody>
+    </table>
+    <details><summary>Raw JSON</summary><pre>${escapeHtml(JSON.stringify(fields,null,2))}</pre></details>
+  `;
+}
+
+function escapeHtml(s){
+  return String(s).replace(/[&<>"']/g, c => ({ "&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;" }[c]));
+}
+
+function buildSummary(results){
+  const lines = [];
+  for (const r of results){
+    if (r.error){ lines.push(`# ${r.label} (${r.dbid}) — ERROR: ${r.error}`); continue; }
+    lines.push(`# ${r.label} (${r.dbid})`);
+    for (const f of r.fields.slice().sort((a,b)=>a.id-b.id)){
+      const refTo = f.properties && f.properties.masterChoiceTableId ? ` -> ${f.properties.masterChoiceTableId}` : "";
+      lines.push(`  ${String(f.id).padStart(3," ")}  ${f.label}  [${f.fieldType}${f.mode? "/"+f.mode:""}]${refTo}`);
+    }
+    lines.push("");
+  }
+  return lines.join("\n");
+}
+
+let lastSummary = "";
+
+document.getElementById("run").addEventListener("click", async () => {
+  const out = document.getElementById("out");
+  out.innerHTML = `<div class="muted">Probing...</div>`;
+  const realm = document.getElementById("realm").value.trim();
+  const appToken = document.getElementById("appToken").value.trim();
+  const results = [];
+  let html = "";
+  for (const t of TABLES){
+    try {
+      const fields = await fetchFields(t.dbid, realm, appToken);
+      results.push({ ...t, fields });
+      html += renderTable(t.label, t.dbid, fields);
+    } catch (e){
+      results.push({ ...t, error: e.message });
+      html += `<h2>${t.label} <span class="muted">(${t.dbid})</span></h2><div class="err">${escapeHtml(e.message)}</div>`;
+    }
+  }
+  lastSummary = buildSummary(results);
+  out.innerHTML = html;
+});
+
+document.getElementById("copy").addEventListener("click", async () => {
+  if (!lastSummary){ alert("Run the probe first."); return; }
+  try { await navigator.clipboard.writeText(lastSummary); alert("Summary copied. Paste it back to Claude."); }
+  catch { prompt("Copy this:", lastSummary); }
+});
+</script>
+</body>
+</html>
