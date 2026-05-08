@@ -109,11 +109,11 @@ export function renderFilterBar(showCards = false) {
 
   const legend = el("div", { class: "legend" });
   const legendItems = [
-    { label: "Not Started", color: "#94a3b8" },
-    { label: "In Progress", color: "var(--bar-progress)" },
-    { label: "Complete",    color: "var(--bar-complete)" },
-    { label: "Blocked",     color: "var(--bar-blocked)" },
-    { label: "Late",        color: "var(--bar-late)" },
+    { label: "Not Started", color: "var(--status-not-started)" },
+    { label: "In Progress", color: "var(--status-in-progress)" },
+    { label: "Complete",    color: "var(--status-complete)" },
+    { label: "Blocked",     color: "var(--status-blocked)" },
+    { label: "Late",        color: "var(--status-late)" },
   ];
   legendItems.forEach(it => {
     const item = el("span", { class: "item" });
@@ -122,7 +122,7 @@ export function renderFilterBar(showCards = false) {
     legend.appendChild(item);
   });
   const ms = el("span", { class: "item" });
-  ms.appendChild(el("span", { class: "swatch milestone", style: { background: "var(--bar)" } }));
+  ms.appendChild(el("span", { class: "swatch milestone" }));
   ms.appendChild(document.createTextNode("Milestone"));
   legend.appendChild(ms);
   fb.appendChild(legend);

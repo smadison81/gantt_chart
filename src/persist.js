@@ -11,7 +11,14 @@ export function loadPersistedSettings() {
     const raw = localStorage.getItem(key);
     if (!raw) return;
     const s = JSON.parse(raw);
-    if (s.zoom && ZOOM_LEVELS[s.zoom]) { State.zoom = s.zoom; State.ppd = ZOOM_LEVELS[s.zoom].ppd; }
+    if (s.zoom && ZOOM_LEVELS[s.zoom]) {
+      State.zoom = s.zoom;
+      const lvlPpd = ZOOM_LEVELS[s.zoom].ppd;
+      // For "all" zoom, ZOOM_LEVELS gives "auto" as a sentinel; setZoom("all")
+      // computes a real ppd from viewport width once the DOM exists. Use a safe
+      // numeric default here so first paint doesn't compute NaN coordinates.
+      State.ppd = (typeof lvlPpd === "number") ? lvlPpd : 8;
+    }
     if (s.groupBy) State.groupBy = s.groupBy;
     if (s.showBaselines !== undefined) State.showBaselines = s.showBaselines;
     if (s.showDeps !== undefined) State.showDeps = s.showDeps;
@@ -19,6 +26,15 @@ export function loadPersistedSettings() {
     if (s.collapsedTasks) State.collapsedTasks = s.collapsedTasks;
     if (Array.isArray(s.columnOrder) && s.columnOrder.length === 4) State.columnOrder = s.columnOrder;
     if (s.mobileView) State.mobileView = s.mobileView;
+    if (s.density && ["compact","default","comfortable"].includes(s.density)) {
+      State.density = s.density;
+      document.body.dataset.density = s.density;
+    }
+    if (s.theme && ["light","dark"].includes(s.theme)) {
+      State.theme = s.theme;
+      if (s.theme === "dark") document.documentElement.dataset.theme = "dark";
+      else delete document.documentElement.dataset.theme;
+    }
   } catch { /* ignore */ }
 }
 
@@ -34,6 +50,8 @@ export function persistSettings() {
       collapsedTasks: State.collapsedTasks,
       columnOrder: State.columnOrder,
       mobileView: State.mobileView,
+      density: State.density,
+      theme: State.theme,
     }));
   } catch { /* ignore */ }
 }

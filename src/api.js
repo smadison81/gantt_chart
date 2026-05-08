@@ -1,5 +1,9 @@
 import State from './state.js';
 
+// Per-DBID temp-token cache. QB temp tokens are scoped to the DBID they were
+// issued against; reusing a token across tables (e.g. tasks → deps) returns 401.
+const tokenCache = {};
+
 export async function getTempToken(dbid) {
   const headers = {
     "QB-Realm-Hostname": State.realm,
@@ -17,22 +21,36 @@ export async function getTempToken(dbid) {
   return j.temporaryAuthorization;
 }
 
+async function tokenFor(dbid) {
+  if (!tokenCache[dbid]) tokenCache[dbid] = await getTempToken(dbid);
+  return tokenCache[dbid];
+}
+
 export async function qbFetch(path, opts = {}, dbid) {
-  if (!State.token) State.token = await getTempToken(dbid || State.cfg.taskDbid);
+  const useDbid = dbid || State.cfg.taskDbid;
+  let token = await tokenFor(useDbid);
+  // Keep State.token in sync for legacy code that reads it directly.
+  State.token = token;
+
   const headers = {
     "QB-Realm-Hostname": State.realm,
-    "Authorization": `QB-TEMP-TOKEN ${State.token}`,
+    "Authorization": `QB-TEMP-TOKEN ${token}`,
     "Content-Type": "application/json",
     ...(opts.headers || {}),
   };
+  if (State.cfg.appToken) headers["QB-App-Token"] = State.cfg.appToken;
+
   const res = await fetch(`https://api.quickbase.com/v1${path}`, { ...opts, headers });
   const txt = await res.text();
   let json = {};
   try { json = txt ? JSON.parse(txt) : {}; } catch { throw new Error("Invalid JSON: " + txt.slice(0, 200)); }
   if (!res.ok) {
     if (res.status === 401) {
-      State.token = await getTempToken(dbid || State.cfg.taskDbid);
-      headers.Authorization = `QB-TEMP-TOKEN ${State.token}`;
+      // Token may have expired (5-minute lifetime); evict and retry once.
+      delete tokenCache[useDbid];
+      token = await tokenFor(useDbid);
+      State.token = token;
+      headers.Authorization = `QB-TEMP-TOKEN ${token}`;
       const res2 = await fetch(`https://api.quickbase.com/v1${path}`, { ...opts, headers });
       const txt2 = await res2.text();
       const j2 = txt2 ? JSON.parse(txt2) : {};

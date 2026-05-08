@@ -35,6 +35,7 @@ export function renderTimeline() {
 
   renderTicks(headInner, w);
   renderTodayLine(inner);
+  renderTodayFlag(headInner);
   renderRows(inner, w);
   renderDependencies(inner, w);
 
@@ -132,6 +133,19 @@ function renderTodayLine(host) {
   if (today < State.chartStart || today > State.chartEnd) return;
   const x = dateToX(today);
   host.appendChild(el("div", { class: "today-line", style: { left: x + "px" }}));
+}
+
+function renderTodayFlag(host) {
+  const today = new Date(); today.setHours(0, 0, 0, 0);
+  if (today < State.chartStart || today > State.chartEnd) return;
+  const x = dateToX(today);
+  host.appendChild(el("div", {
+    class: "today-flag",
+    style: { left: x + "px" },
+  }, [
+    el("span", { class: "dot" }),
+    el("span", {}, ["TODAY"]),
+  ]));
 }
 
 function renderRows(host, w) {
@@ -244,8 +258,26 @@ function renderRows(host, w) {
       }
     }
 
+    // Status glyph (○ ◐ ● ▲ ■)
+    if (!t.isMilestone && !isSummary) {
+      const glyphMap = {
+        "not-started": "○", // ○
+        "in-progress": "◐", // ◐
+        "complete":    "●", // ●
+        "late":        "▲", // ▲
+        "blocked":     "■", // ■
+      };
+      const g = glyphMap[statusClass];
+      if (g) bar.appendChild(el("span", { class: "glyph" }, [g]));
+    }
+
+    // Label: inside if bar >= 80px, outside-right otherwise
     if (!t.isMilestone && !isSummary && State.showLabels) {
-      bar.appendChild(el("div", { class: "lbl" }, [t.name]));
+      if (barWidth >= 80) {
+        bar.appendChild(el("div", { class: "lbl" }, [t.name]));
+      } else {
+        bar.appendChild(el("div", { class: "lbl-out" }, [t.name]));
+      }
     }
 
     if (State.cfg.allocDbid && !isSummary) {

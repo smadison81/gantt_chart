@@ -50,9 +50,9 @@ export function renderList() {
         onclick: () => { if (_selectTask) _selectTask(null); State.groups[item.key] = !State.groups[item.key]; computeVisible(); if (_render) _render(); }
       }, [
         el("div", { class: "gh" }, [
-          el("span", { class: "chev" }, ["\u25BC"]),
-          item.key,
-          el("span", { style: { color: "var(--text-3)", fontWeight: "400", marginLeft: "6px" }}, [`(${item.count})`]),
+          el("span", { class: "chev" }, ["\u25BE"]),
+          el("span", {}, [item.key]),
+          el("span", { class: "gh-pill" }, [String(item.count)]),
         ]),
       ]);
       lb.appendChild(row);

@@ -1,23 +1,131 @@
 :root{
-  --bg:#f8fafc; --surface:#fff; --surface-2:#f1f5f9; --surface-3:#e2e8f0;
-  --border:#e2e8f0; --border-strong:#cbd5e1;
-  --text:#0f172a; --text-2:#475569; --text-3:#94a3b8;
-  --accent:#3b82f6; --accent-dark:#2563eb; --accent-soft:#dbeafe;
-  --success:#10b981; --warning:#f59e0b; --danger:#ef4444; --info:#6366f1;
-  --bar:#6366f1; --bar-complete:#10b981; --bar-late:#ef4444;
-  --bar-progress:#f59e0b; --bar-blocked:#dc2626; --bar-baseline:#cbd5e1;
-  --shadow-sm:0 1px 2px rgba(0,0,0,.05);
-  --shadow:0 4px 6px -1px rgba(0,0,0,.07),0 2px 4px -2px rgba(0,0,0,.05);
-  --shadow-lg:0 10px 25px -5px rgba(0,0,0,.1),0 4px 6px -4px rgba(0,0,0,.05);
-  --radius:8px; --radius-sm:6px; --row-h:38px;
+  /* Surface + ink — Linear-style cool tones, near-black ink, hairline borders */
+  --bg:#FAFBFC;
+  --surface:#FFFFFF;
+  --surface-2:#F4F5F8;
+  --surface-3:#E9EBF0;
+  --border:#EBEEF2;
+  --border-strong:#D9DCE3;
+  --text:#0F1116;
+  --text-2:#5C6370;
+  --text-3:#9097A3;
+
+  /* Accent — electric blue, used for primary + selection + today */
+  --accent:#3B82F6;
+  --accent-dark:#2563EB;
+  --accent-darker:#1D4ED8;
+  --accent-soft:#DBEAFE;
+  --accent-softer:#EFF6FF;
+  --accent-glow:rgba(59,130,246,.35);
+
+  /* Today line uses accent (vivid blue), not text color */
+  --today:#3B82F6;
+  --today-glow:rgba(59,130,246,.45);
+
+  /* Status palette — 6 narrative colors with gradient pairs */
+  --status-not-started:#94A3B8;
+  --status-not-started-2:#64748B;
+  --status-not-started-ink:#FFFFFF;
+
+  --status-in-progress:#3B82F6;
+  --status-in-progress-2:#2563EB;
+  --status-in-progress-ink:#FFFFFF;
+  --status-in-progress-glow:rgba(59,130,246,.30);
+
+  --status-complete:#10B981;
+  --status-complete-2:#059669;
+  --status-complete-ink:#FFFFFF;
+  --status-complete-glow:rgba(16,185,129,.30);
+
+  --status-at-risk:#F59E0B;
+  --status-at-risk-2:#D97706;
+  --status-at-risk-ink:#FFFFFF;
+  --status-at-risk-glow:rgba(245,158,11,.30);
+
+  --status-late:#FB7185;
+  --status-late-2:#E11D48;
+  --status-late-ink:#FFFFFF;
+  --status-late-glow:rgba(225,29,72,.30);
+
+  --status-blocked:#881337;
+  --status-blocked-2:#5F0F1B;
+  --status-blocked-ink:#FFFFFF;
+  --status-blocked-glow:rgba(136,19,55,.35);
+
+  /* Legacy alias names kept stable for older CSS */
+  --success:var(--status-complete);
+  --warning:var(--status-at-risk);
+  --danger:var(--status-late-2);
+  --info:var(--accent);
+  --bar:var(--status-in-progress);
+  --bar-complete:var(--status-complete);
+  --bar-progress:var(--status-in-progress);
+  --bar-late:var(--status-late);
+  --bar-blocked:var(--status-blocked);
+  --bar-baseline:var(--border-strong);
+
+  /* Typography — uniform Inter (Linear-style, no display split) */
+  --font-display:"Inter",-apple-system,system-ui,sans-serif;
+  --font-body:"Inter",-apple-system,system-ui,sans-serif;
+  --font-mono:"JetBrains Mono",ui-monospace,Menlo,monospace;
+
+  /* Geometry */
+  --row-h:40px;
+  --bar-h:24px;
+  --bar-top:8px;
+  --radius:6px;
+  --radius-card:10px;
+  --radius-pill:999px;
+  --grid-gutter:18px;
+  --left-w:440px;
+
+  /* Toolbar / filterbar / statusbar */
+  --toolbar-h:56px;
+  --filterbar-h:46px;
+  --statusbar-h:32px;
+
+  --side-panel-w:420px;
+
+  /* Elevation — three real layers for depth */
+  --shadow-xs:0 1px 1px rgba(15,23,42,.04);
+  --shadow-sm:0 1px 3px rgba(15,23,42,.10), 0 1px 2px rgba(15,23,42,.06);
+  --shadow-md:0 4px 12px rgba(15,23,42,.10), 0 2px 4px rgba(15,23,42,.06);
+  --shadow-lg:0 10px 32px rgba(15,23,42,.16), 0 4px 8px rgba(15,23,42,.08);
+  --shadow-xl:0 24px 64px rgba(15,23,42,.22), 0 8px 16px rgba(15,23,42,.10);
+
+  /* Motion */
+  --dur-fast:120ms;
+  --dur-med:180ms;
+  --dur-slow:280ms;
+  --ease:cubic-bezier(0.16, 1, 0.3, 1);
+  --ease-out:cubic-bezier(0.2, 0, 0, 1);
 }
+
+/* Density toggle */
+body[data-density="compact"]     { --row-h:32px; --bar-h:20px; --bar-top:6px; }
+body[data-density="default"]     { --row-h:40px; --bar-h:24px; --bar-top:8px; }
+body[data-density="comfortable"] { --row-h:48px; --bar-h:28px; --bar-top:10px; }
+
 *{box-sizing:border-box}
 html,body{margin:0;padding:0;height:100%;overflow:hidden}
-body{font:14px -apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif;color:var(--text);background:var(--bg)}
+body{
+  font-family:var(--font-body);
+  font-size:13px;line-height:1.45;font-weight:400;
+  color:var(--text);background:var(--bg);
+  -webkit-font-smoothing:antialiased;
+  -moz-osx-font-smoothing:grayscale;
+  font-feature-settings:"cv02","cv03","cv04","cv11";
+}
 button{font:inherit;cursor:pointer;border:0;background:transparent;color:inherit}
 input,select,textarea{font:inherit;color:inherit}
 a{color:var(--accent);text-decoration:none}
 a:hover{text-decoration:underline}
+
+/* Pulse for today line */
+@keyframes today-pulse{
+  0%, 100% { opacity: 1; }
+  50%      { opacity: 0.55; }
+}
 
 /* ========== MAIN LAYOUT ==========
    Two-pane architecture matching the QB Gantt plugin and standard Gantt UX:
@@ -33,30 +141,32 @@ a:hover{text-decoration:underline}
 .main{
   display:grid;
   grid-template-columns:var(--left-w,440px) 6px 1fr;
-  height:calc(100vh - 130px);
+  height:calc(100vh - var(--toolbar-h) - var(--filterbar-h) - var(--statusbar-h));
   overflow:hidden;
   background:var(--surface);
 }
 .divider-cell{
   cursor:col-resize;background:var(--border);
-  transition:background .15s;
+  transition:background var(--dur-fast) var(--ease);
   z-index:6;position:relative;
 }
 .divider-cell:hover,.divider-cell.dragging{background:var(--accent)}
 .divider-cell::after{
   content:"";position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);
-  width:2px;height:30px;background:var(--text-3);border-radius:2px;opacity:.4;
+  width:1px;height:24px;background:var(--text-3);opacity:.4;
 }
-.divider-cell:hover::after{opacity:.8;background:#fff}
+.divider-cell:hover::after{opacity:.9;background:#fff}
 
 /* ========== LEFT (LIST) ========== */
 .left{display:flex;flex-direction:column;overflow:hidden;background:var(--surface);min-width:0}
 
 /* ========== RIGHT (TIMELINE) ========== */
-.right{display:flex;flex-direction:column;overflow:hidden;background:var(--surface);min-width:0}
+.right{display:flex;flex-direction:column;overflow:hidden;background:var(--surface);min-width:0;position:relative}
+.right::before{display:none}
 .timeline-head{
   flex-shrink:0;
-  height:var(--row-h);background:var(--surface-2);
+  height:var(--row-h);
+  background:var(--surface-2);
   border-bottom:1px solid var(--border);
   z-index:4;
   overflow:hidden;
@@ -72,15 +182,27 @@ a:hover{text-decoration:underline}
 
 /* ========== STATUS BAR ========== */
 .statusbar{
-  display:flex;align-items:center;gap:12px;padding:6px 16px;
-  background:var(--surface-2);border-bottom:1px solid var(--border);
-  font-size:12px;color:var(--text-2);height:30px;flex-shrink:0;
+  display:flex;align-items:center;gap:12px;padding:6px var(--grid-gutter);
+  background:var(--surface);border-top:1px solid var(--border);
+  font-size:11.5px;color:var(--text-2);height:var(--statusbar-h);flex-shrink:0;
+  font-family:var(--font-body);
 }
-.statusbar .pill{padding:2px 8px;border-radius:999px;background:var(--surface);border:1px solid var(--border)}
-.statusbar .pill.ok{color:var(--success);border-color:#a7f3d0;background:#ecfdf5}
-.statusbar .pill.warn{color:var(--warning);border-color:#fde68a;background:#fffbeb}
-.statusbar .pill.err{color:var(--danger);border-color:#fecaca;background:#fef2f2}
-.statusbar .pill.info{color:var(--accent);border-color:#bfdbfe;background:#eff6ff}
+.statusbar .pill{
+  padding:2px 9px;border-radius:var(--radius-pill);background:var(--surface-2);
+  border:1px solid var(--border);font-size:11px;color:var(--text-2);font-weight:500;
+}
+.statusbar .pill.ok{
+  color:var(--status-complete-2);background:#ECFDF5;border-color:#A7F3D0;
+}
+.statusbar .pill.warn{
+  color:var(--status-at-risk-2);background:#FFFBEB;border-color:#FDE68A;
+}
+.statusbar .pill.err{
+  color:var(--status-late-2);background:#FFF1F2;border-color:#FECDD3;
+}
+.statusbar .pill.info{
+  color:var(--accent-dark);background:var(--accent-softer);border-color:var(--accent-soft);
+}
 
 /* ========== LOADING ========== */
 .loading{
@@ -88,7 +210,7 @@ a:hover{text-decoration:underline}
   height:200px;color:var(--text-3);gap:10px;
 }
 .spinner{
-  width:18px;height:18px;border:2px solid var(--border);
+  width:16px;height:16px;border:2px solid var(--border);
   border-top-color:var(--accent);border-radius:50%;animation:spin .7s linear infinite;
 }
 @keyframes spin{to{transform:rotate(360deg)}}
@@ -98,23 +220,84 @@ a:hover{text-decoration:underline}
   padding:32px;text-align:center;color:var(--text-2);
   display:flex;flex-direction:column;align-items:center;gap:12px;
 }
-.empty .ico,.err .ico{font-size:32px;opacity:.5}
-.err{color:var(--danger)}
+.empty .ico,.err .ico{font-size:24px;opacity:.4}
+.err{color:var(--status-late-2)}
 .err pre{
-  background:#fef2f2;border:1px solid #fecaca;padding:12px;
-  border-radius:var(--radius-sm);font-size:12px;text-align:left;
-  white-space:pre-wrap;max-width:600px;margin:0;
+  background:#FFF1F2;border:1px solid #FECDD3;padding:12px;
+  border-radius:var(--radius);font-family:var(--font-mono);font-size:11px;
+  text-align:left;white-space:pre-wrap;max-width:600px;margin:0;color:var(--text-2);
 }
 
 /* ========== KEYBOARD HINT ========== */
 .kbd{
   display:inline-block;padding:1px 6px;background:var(--surface-2);
-  border:1px solid var(--border);border-radius:3px;font-size:11px;
-  font-family:ui-monospace,Menlo,monospace;color:var(--text-2);
+  border:1px solid var(--border);border-radius:3px;font-size:10.5px;
+  font-family:var(--font-mono);color:var(--text-2);
+  box-shadow:inset 0 -1px 0 var(--border-strong);
 }
 
 /* ========== READ-ONLY INDICATOR ========== */
 .readonly-pill{
-  padding:3px 10px;border-radius:999px;background:#fef2f2;
-  color:var(--danger);font-size:11px;font-weight:600;border:1px solid #fecaca;
+  padding:3px 10px;border-radius:var(--radius-pill);
+  background:var(--accent-softer);
+  color:var(--accent-dark);font-size:10.5px;font-weight:700;letter-spacing:.06em;
+  text-transform:uppercase;border:1px solid var(--accent-soft);
+}
+
+/* ========== DARK THEME — flagship dark mode ========== */
+[data-theme="dark"]{
+  --bg:#0A0E1A;
+  --surface:#131825;
+  --surface-2:#1B2030;
+  --surface-3:#252B3D;
+  --border:#252B3D;
+  --border-strong:#3A4159;
+  --text:#E2E8F0;
+  --text-2:#94A3B8;
+  --text-3:#64748B;
+
+  --accent:#60A5FA;
+  --accent-dark:#3B82F6;
+  --accent-darker:#2563EB;
+  --accent-soft:rgba(96,165,250,.18);
+  --accent-softer:rgba(96,165,250,.10);
+  --accent-glow:rgba(96,165,250,.50);
+
+  --today:#60A5FA;
+  --today-glow:rgba(96,165,250,.55);
+
+  --status-not-started:#64748B;
+  --status-not-started-2:#475569;
+  --status-not-started-ink:#E2E8F0;
+
+  --status-in-progress:#60A5FA;
+  --status-in-progress-2:#3B82F6;
+  --status-in-progress-ink:#0A0E1A;
+  --status-in-progress-glow:rgba(96,165,250,.40);
+
+  --status-complete:#34D399;
+  --status-complete-2:#10B981;
+  --status-complete-ink:#0A0E1A;
+  --status-complete-glow:rgba(52,211,153,.40);
+
+  --status-at-risk:#FBBF24;
+  --status-at-risk-2:#F59E0B;
+  --status-at-risk-ink:#0A0E1A;
+  --status-at-risk-glow:rgba(251,191,36,.40);
+
+  --status-late:#FB7185;
+  --status-late-2:#F43F5E;
+  --status-late-ink:#0A0E1A;
+  --status-late-glow:rgba(244,63,94,.40);
+
+  --status-blocked:#BE123C;
+  --status-blocked-2:#9F1239;
+  --status-blocked-ink:#FECDD3;
+  --status-blocked-glow:rgba(190,18,60,.45);
+
+  --shadow-xs:0 1px 1px rgba(0,0,0,.4);
+  --shadow-sm:0 1px 3px rgba(0,0,0,.5), 0 1px 2px rgba(0,0,0,.3);
+  --shadow-md:0 4px 12px rgba(0,0,0,.5), 0 2px 4px rgba(0,0,0,.3);
+  --shadow-lg:0 10px 32px rgba(0,0,0,.6), 0 4px 8px rgba(0,0,0,.4);
+  --shadow-xl:0 24px 64px rgba(0,0,0,.7), 0 8px 16px rgba(0,0,0,.5);
 }

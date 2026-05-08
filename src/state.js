@@ -47,6 +47,8 @@ const State = {
   showDeps: true,
   cascadeOnMove: false,
   showLabels: true,
+  density: "default",
+  theme: "light",
   undoStack: [],
   redoStack: [],
   pendingChanges: [],

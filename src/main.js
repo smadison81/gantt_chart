@@ -134,6 +134,10 @@ async function boot() {
   try {
     await loadTasks();
     applyFilters();
+    // If the persisted zoom was "all", recompute ppd from viewport now that
+    // tasks are loaded and the DOM exists. Otherwise persist would have set
+    // ppd to a fallback (8) and the chart would underfit.
+    if (State.zoom === "all") setZoom("all");
     setTimeout(scrollToToday, 100);
   } catch (e) {
     showError(e);

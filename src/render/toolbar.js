@@ -120,6 +120,37 @@ export function renderToolbar(showCards = false) {
   tb.appendChild(el("button", { class: "btn", onclick: () => { if (_validateSchedule) _validateSchedule(); } }, ["Validate"]));
   tb.appendChild(el("button", { class: "btn ghost", onclick: () => { if (_exportCSV) _exportCSV(); }, title: "Export CSV" }, ["CSV"]));
   tb.appendChild(el("button", { class: "btn ghost", onclick: () => { if (_exportXLS) _exportXLS(); }, title: "Export Excel" }, ["Excel"]));
+  // Density toggle (compact 32 / default 36 / comfortable 44)
+  const densitySeg = el("div", { class: "seg density-seg", title: "Row density" });
+  [
+    { key: "compact",     label: "32", title: "Compact (32px rows)" },
+    { key: "default",     label: "36", title: "Default (36px rows)" },
+    { key: "comfortable", label: "44", title: "Comfortable (44px rows)" },
+  ].forEach(d => {
+    const b = el("button", {
+      class: State.density === d.key ? "active" : "",
+      title: d.title,
+      onclick: () => {
+        State.density = d.key;
+        document.body.dataset.density = d.key;
+        if (_render) _render();
+      },
+    }, [d.label]);
+    densitySeg.appendChild(b);
+  });
+  tb.appendChild(densitySeg);
+
+  // Theme toggle (light / dark)
+  tb.appendChild(el("button", {
+    class: "btn ghost", title: State.theme === "dark" ? "Switch to light theme" : "Switch to dark theme",
+    onclick: () => {
+      State.theme = State.theme === "dark" ? "light" : "dark";
+      if (State.theme === "dark") document.documentElement.dataset.theme = "dark";
+      else delete document.documentElement.dataset.theme;
+      if (_render) _render();
+    },
+  }, [State.theme === "dark" ? "☼" : "☽"]));
+
   tb.appendChild(el("button", { class: "btn ghost", onclick: () => { if (_toggleFullscreen) _toggleFullscreen(); }, title: "Toggle fullscreen (F11)" }, [document.fullscreenElement ? "Exit Fullscreen" : "Fullscreen"]));
 
   if (!State.cfg.readOnly) {
